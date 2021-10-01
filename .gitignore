@@ -1,0 +1,13 @@
+*.pdf
+*.png
+.DS_Store
+.idea/
+
+Chi_squared_analysis/
+Covariance/
+OLD/
+PULL/
+SpectrumPlots/
+Test_Stoch_Response/
+__pycache__/
+
