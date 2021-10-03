@@ -1,29 +1,29 @@
 {
 	"oscillationParams" : {
-		"sin2_12" : "0.307",
-		"deltam_21" : "7.53e-5",
-		"sin2_13_N" : "0.0218",
-		"deltam_31_N" : "2.453e-3+7.53e-5",
-		"sin2_13_I" : "0.0218",
-		"deltam_32_I" : "-2.546e-3"
+		"sin2_12" : 0.307,
+		"deltam_21" : 7.53e-5,
+		"sin2_13_N" : 0.0218,
+		"deltam_31_N" : 2.528e-3,
+		"sin2_13_I" : 0.0218,
+		"deltam_32_I" : -2.546e-3
 	},
 	"matter_effect" : {
-		"matter_density" : "2.45",
-		"abs_sigma" : "0.15",
-		"rel_sigma" : "0.06"
+		"matter_density" : 2.45,
+		"abs_sigma" : 0.15,
+		"rel_sigma" : 0.06
 	},
 	"fission_fractions" : {
-		"235U" : "0.58",
-		"239Pu" : "0.30",
-		"238U" : "0.07",
-		"241Pu" : "0.05"
+		"235U" : 0.58,
+		"239Pu" : 0.30,
+		"238U" : 0.07,
+		"241Pu" : 0.05
 	},
 	"energy_resolution" : {
-		"a" : "2.61e-2",
-		"sigma_a" : "0.02e-2",
-		"b" : "0.82e-2",
-		"sigma_b" : "0.01e-2",
-		"c" : "1.23e-2",
-		"sigma_c" : "0.04e-2"
+		"a" : 2.61e-2,
+		"sigma_a" : 0.02e-2,
+		"b" : 0.82e-2,
+		"sigma_b" : 0.01e-2,
+		"c" : 1.23e-2,
+		"sigma_c" : 0.04e-2
 	}
 }
