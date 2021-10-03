@@ -3,11 +3,11 @@ import matplotlib.ticker as plticker
 import numpy as np
 from scipy.integrate import simps
 
-
-def reactor_exp(x, a, b, c):
-    res = np.exp(a - b * x - c * (x ** 2))
-    return res
-
+# TODO:
+# - initialize class with .json file with fission fractions
+# - create spectrum from inputs, like DYB spectrum
+# - remove part for plotting
+# - add methods to change fission fractions
 
 class ReactorSpectrum:
 
@@ -22,6 +22,41 @@ class ReactorSpectrum:
         self.x_sec = 0
         self.spectrum_un = 0
         self.norm_spectrum_un = 0
+    
+    @staticmethod
+    def reactor_exp(x_, a_, b_, c_):
+        res = np.exp(a_ - b_ * x_ - c_ * (x_ ** 2))
+        return res
+        
+    def set_fission_fractions(self, f235u_, f239pu_, f238u_, f241pu_):
+        self.f235u = f235u_
+        self.f239pu = f239pu_
+        self.f238u = f238u_
+        self.f241pu = f241pu_
+        
+    def set_f235u(self, f235u_):
+        self.f235u = f235u_
+        
+    def set_f238u(self, f238u_):
+        self.f238u = f238u_
+
+    def set_f239pu(self, f239pu_):
+        self.f239pu = f239pu_
+        
+    def set_f241pu(self, f241pu_):
+        self.f241pu = f241pu_
+        
+    def get_f235u(self):
+        return self.f235u
+        
+    def get_f238u(self):
+        return self.f238u
+
+    def get_f239pu(self):
+        return self.f239pu
+        
+    def get_f241pu(self):
+        return self.f241pu
 
     def flux(self, E, plot_this=False):
         """
@@ -47,10 +82,10 @@ class ReactorSpectrum:
         ----------
         http://inspirehep.net/record/25814/ and https://arxiv.org/abs/0807.3203, eq. (2)
         """
-        u235 = reactor_exp(E, 0.870, 0.160, 0.091)
-        pu239 = reactor_exp(E, 0.896, 0.239, 0.0981)
-        u238 = reactor_exp(E, 0.976, 0.162, 0.0790)
-        pu241 = reactor_exp(E, 0.793, 0.080, 0.1085)
+        u235 = self.reactor_exp(E, 0.870, 0.160, 0.091)
+        pu239 = self.reactor_exp(E, 0.896, 0.239, 0.0981)
+        u238 = self.reactor_exp(E, 0.976, 0.162, 0.0790)
+        pu241 = self.reactor_exp(E, 0.793, 0.080, 0.1085)
 
         self.tot_flux = self.f235u * u235 + self.f239pu * pu239 + self.f238u * u238 + self.f241pu * pu241
 
@@ -108,11 +143,11 @@ class ReactorSpectrum:
         alpha = -0.07056
         beta = 0.02018
         gamma = -0.001953
-        Delta = 1.293  # MeV, mass(n)-mass(p)
+        delta = 1.293  # MeV, mass(n)-mass(p)
         m_e = 0.511  # MeV
         const = 10 ** (-43)  # cm^2
 
-        E_e = np.subtract(E, Delta)  # positron's energy
+        E_e = np.subtract(E, delta)  # positron's energy
 
         appo = np.power(E_e, 2) - m_e ** 2
         p_e = np.sqrt(appo)  # positron's momentum
