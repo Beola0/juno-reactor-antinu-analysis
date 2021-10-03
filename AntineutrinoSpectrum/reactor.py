@@ -4,29 +4,25 @@ import numpy as np
 from scipy.integrate import simps
 
 # TODO:
-# - initialize class with .json file with fission fractions
+# - initialize class with .json file with fission fractions --> DONE
 # - create spectrum from inputs, like DYB spectrum
 # - remove part for plotting
-# - add methods to change fission fractions
+# - add methods to change fission fractions --> DONE
+
 
 class ReactorSpectrum:
 
-    def __init__(self):
+    def __init__(self, inputs_json_):
 
-        self.f235u = 0.58
-        self.f239pu = 0.30
-        self.f238u = 0.07
-        self.f241pu = 0.05
+        self.f235u = inputs_json_["fission_fractions"]["235U"]
+        self.f239pu = inputs_json_["fission_fractions"]["239Pu"]
+        self.f238u = inputs_json_["fission_fractions"]["238U"]
+        self.f241pu = inputs_json_["fission_fractions"]["241Pu"]
 
         self.tot_flux = 0
         self.x_sec = 0
         self.spectrum_un = 0
         self.norm_spectrum_un = 0
-    
-    @staticmethod
-    def reactor_exp(x_, a_, b_, c_):
-        res = np.exp(a_ - b_ * x_ - c_ * (x_ ** 2))
-        return res
         
     def set_fission_fractions(self, f235u_, f239pu_, f238u_, f241pu_):
         self.f235u = f235u_
@@ -58,7 +54,12 @@ class ReactorSpectrum:
     def get_f241pu(self):
         return self.f241pu
 
-    def flux(self, E, plot_this=False):
+    @staticmethod
+    def reactor_exp(x_, a_, b_, c_):
+        res = np.exp(a_ - b_ * x_ - c_ * (x_ ** 2))
+        return res
+
+    def flux(self, nu_energy, plot_this=False):
         """
         Evaluate the reactor antineutrino flux.
 
@@ -67,7 +68,7 @@ class ReactorSpectrum:
 
         Parameters
         ----------
-        E : numpy array
+        nu_energy : numpy array
             Antineutrino energies.
         plot_this : bool, optional
             A flag used to plot the contributions of the four core isotopes to the flux and the total flux, as functions
@@ -82,10 +83,10 @@ class ReactorSpectrum:
         ----------
         http://inspirehep.net/record/25814/ and https://arxiv.org/abs/0807.3203, eq. (2)
         """
-        u235 = self.reactor_exp(E, 0.870, 0.160, 0.091)
-        pu239 = self.reactor_exp(E, 0.896, 0.239, 0.0981)
-        u238 = self.reactor_exp(E, 0.976, 0.162, 0.0790)
-        pu241 = self.reactor_exp(E, 0.793, 0.080, 0.1085)
+        u235 = self.reactor_exp(nu_energy, 0.870, 0.160, 0.091)
+        pu239 = self.reactor_exp(nu_energy, 0.896, 0.239, 0.0981)
+        u238 = self.reactor_exp(nu_energy, 0.976, 0.162, 0.0790)
+        pu241 = self.reactor_exp(nu_energy, 0.793, 0.080, 0.1085)
 
         self.tot_flux = self.f235u * u235 + self.f239pu * pu239 + self.f238u * u238 + self.f241pu * pu241
 
@@ -96,11 +97,11 @@ class ReactorSpectrum:
             ax = fig.add_subplot(111)
             fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
 
-            ax.plot(E, self.tot_flux, 'k', linewidth=1.5, label='Total')
-            ax.plot(E, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            ax.plot(E, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            ax.plot(E, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            ax.plot(E, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
+            ax.plot(nu_energy, self.tot_flux, 'k', linewidth=1.5, label='Total')
+            ax.plot(nu_energy, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
+            ax.plot(nu_energy, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
+            ax.plot(nu_energy, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
+            ax.plot(nu_energy, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
 
             ax.legend()
             ax.grid(alpha=0.45)
@@ -113,12 +114,12 @@ class ReactorSpectrum:
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
 
-            plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
 
         return self.tot_flux
 
-    def cross_section(self, E, plot_this=False):
+    def cross_section(self, nu_energy, plot_this=False):
         """
         Evaluate the IBD cross section.
 
@@ -126,7 +127,7 @@ class ReactorSpectrum:
 
         Parameters
         ----------
-        E : numpy array
+        nu_energy : numpy array
             Antineutrino energies.
         plot_this : bool, optional
             A flag used to plot the IBD cross section as a function of energy (default is False)
@@ -147,15 +148,15 @@ class ReactorSpectrum:
         m_e = 0.511  # MeV
         const = 10 ** (-43)  # cm^2
 
-        E_e = np.subtract(E, delta)  # positron's energy
+        positron_energy = np.subtract(nu_energy, delta)  # positron's energy
 
-        appo = np.power(E_e, 2) - m_e ** 2
+        appo = np.power(positron_energy, 2) - m_e ** 2
         p_e = np.sqrt(appo)  # positron's momentum
 
-        appo_exp = alpha + beta * np.log(E) + gamma * np.power(np.log(E), 3)
-        E_exp = np.power(E, appo_exp)
+        appo_exp = alpha + beta * np.log(nu_energy) + gamma * np.power(np.log(nu_energy), 3)
+        energy_exp = np.power(nu_energy, appo_exp)
 
-        self.x_sec = const * p_e * E_e * E_exp
+        self.x_sec = const * p_e * positron_energy * energy_exp
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
@@ -164,7 +165,7 @@ class ReactorSpectrum:
             ax = fig.add_subplot(111)
             fig.subplots_adjust(left=0.09, right=0.96, top=0.95)
 
-            ax.plot(E, self.x_sec, 'k', linewidth=1.5, label='IBD cross section')
+            ax.plot(nu_energy, self.x_sec, 'k', linewidth=1.5, label='IBD cross section')
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
@@ -175,12 +176,12 @@ class ReactorSpectrum:
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
 
-            plt.savefig('SpectrumPlots/cross_section.pdf', format='pdf', transparent=True)
-            print('\nThe plot has been saved in SpectrumPlots/cross_section.pdf')
+            # plt.savefig('SpectrumPlots/cross_section.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/cross_section.pdf')
 
         return self.x_sec
 
-    def unosc_spectrum(self, E, plot_this=False):
+    def unosc_spectrum(self, nu_energy, plot_this=False):
         """
         Evaluate the unoscillated reactor spectrum.
 
@@ -188,7 +189,7 @@ class ReactorSpectrum:
 
         Parameters
         ----------
-        E : numpy array
+        nu_energy : numpy array
             Antineutrino energies.
         plot_this : bool, optional
             A flag used to plot the unoscillated reactor spectrum as a function of the neutrino energy
@@ -199,11 +200,11 @@ class ReactorSpectrum:
         norm_spectrum_un : numpy array
             normalized unoscillated spectrum
         """
-        self.flux(E, plot_this=False)
-        self.cross_section(E, plot_this=False)
+        self.flux(nu_energy, plot_this=False)
+        self.cross_section(nu_energy, plot_this=False)
 
         self.spectrum_un = self.tot_flux * self.x_sec
-        integral = simps(self.spectrum_un, E)
+        integral = simps(self.spectrum_un, nu_energy)
         self.norm_spectrum_un = self.spectrum_un / integral
 
         if plot_this:
@@ -213,8 +214,8 @@ class ReactorSpectrum:
             ax = fig.add_subplot(111)
             fig.subplots_adjust(left=0.12, right=0.96, top=0.95)
 
-            # ax.plot(E,self.spectrum_un,'b',linewidth=1,label='spectrum') # not normalized spectrum
-            ax.plot(E, self.norm_spectrum_un, 'k', linewidth=1.5, label='spectrum')  # normalized spectrum
+            # ax.plot(nu_energy,self.spectrum_un,'b',linewidth=1,label='spectrum') # not normalized spectrum
+            ax.plot(nu_energy, self.norm_spectrum_un, 'k', linewidth=1.5, label='spectrum')  # normalized spectrum
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
@@ -226,7 +227,7 @@ class ReactorSpectrum:
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
 
-            plt.savefig('SpectrumPlots/unoscillated_spectrum.pdf', format='pdf', transparent=True)
-            print('\nThe plot has been saved in SpectrumPlots/unoscillated_spectrum.pdf')
+            # plt.savefig('SpectrumPlots/unoscillated_spectrum.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/unoscillated_spectrum.pdf')
 
         return self.norm_spectrum_un
