@@ -3,23 +3,36 @@ import matplotlib.ticker as plticker
 import numpy as np
 import math
 
+# TODO:
+# - add methods to change osc params --> DONE
+# - divide NO and IO into separate methods + third method for both
+# - new method: change baseline --> self.baselines = [52.5]
+# - remove part for plotting
+# - add methods for osc probability in matter
+# - initialize with .json file --> DONE
+
 
 ### survival probability
 class OscillationProbability:
 
-    def __init__(self, t12, m21, t13_N, m3l_N, t13_I, m3l_I):
+    def __init__(self, inputs_json_):
         self.baseline = 52.5  # [km], fixed for now -> can be modified, in class Spectrum
 
-        self.sin2_12 = t12
-        self.deltam_21 = m21  # [eV^2]
+        self.sin2_12 = inputs_json_["oscillationParams"]["sin2_12"]
+        self.deltam_21 = inputs_json_["oscillationParams"]["deltam_21"]  # [eV^2]
 
         # Normal Ordering: 3l = 31
-        self.sin2_13_N = t13_N
-        self.deltam_3l_N = m3l_N  # [eV^2]
+        self.sin2_13_N = inputs_json_["oscillationParams"]["sin2_13_N"]
+        self.deltam_3l_N = inputs_json_["oscillationParams"]["deltam_31_N"]  # [eV^2]
 
         # Inverted Ordering: 3l = 32
-        self.sin2_13_I = t13_I
-        self.deltam_3l_I = m3l_I  # [eV^2]
+        self.sin2_13_I = inputs_json_["oscillationParams"]["sin2_13_I"]
+        self.deltam_3l_I = inputs_json_["oscillationParams"]["deltam_32_I"]  # [eV^2]
+
+        # Matter density for matter effect
+        self.rho = inputs_json_["matter_effect"]["matter_density"]
+        self.sigma_abs = inputs_json_["matter_effect"]["abs_sigma"]
+        self.sigma_rel = inputs_json_["matter_effect"]["rel_sigma"]
 
         self.prob_N = 0
         self.prob_E_N = 0
@@ -29,6 +42,50 @@ class OscillationProbability:
         self.jhep_prob_E_N = 0
         self.jhep_prob_I = 0
         self.jhep_prob_E_I = 0
+
+    def set_rho(self, rho_, sigma_, sigma_rel_):
+        self.rho = rho_
+        self.sigma_abs = sigma_
+        self.sigma_rel = sigma_rel_
+
+    def get_rho(self):
+        return self.rho, self.sigma_abs, self.sigma_rel
+
+    def set_sin2_12(self, val_):
+        self.sin2_12 = val_
+
+    def get_sin2_12(self):
+        return self.sin2_12
+
+    def set_deltam_21(self, val_):
+        self.deltam_21 = val_
+
+    def get_deltam_21(self):
+        return self.deltam_21
+
+    def set_sin2_13_N(self, val_):
+        self.sin2_13_N = val_
+
+    def get_sin2_13_N(self):
+        return self.sin2_13_N
+
+    def set_deltam_3l_N(self, val_):
+        self.deltam_3l_N = val_
+
+    def get_deltam_3l_N(self):
+        return self.deltam_3l_N
+
+    def set_sin2_13_I(self, val_):
+        self.sin2_13_I = val_
+
+    def get_sin2_13_I(self):
+        return self.sin2_13_I
+
+    def set_deltam_3l_I(self, val_):
+        self.deltam_3l_I = val_
+
+    def get_deltam_3l_I(self):
+        return self.deltam_3l_I
 
     @staticmethod
     def sin2(x, dm2):
@@ -52,6 +109,16 @@ class OscillationProbability:
         """
         appo = 1.27 * dm2 * x  # x in [m/MeV]
         return np.power(np.sin(appo), 2)
+
+    @staticmethod
+    def sin(x, dm2):
+        appo = 1.27 * dm2 * x  # x in [m/MeV]
+        return np.sin(appo)
+
+    @staticmethod
+    def cos(x, dm2):
+        appo = 1.27 * dm2 * x  # x in [m/MeV]
+        return np.cos(appo)
 
     def eval_prob(self, E, ordering, plot_this_LE=False, plot_this_E=False):
         """
@@ -199,17 +266,6 @@ class OscillationProbability:
 
     ### evaluation of the survival probability with the same formula as above written in an other way
     ### see JHEP05(2013)131, eq. (2.6), Japanese (https://arxiv.org/abs/1210.8141)
-
-    @staticmethod
-    def sin(x, dm2):
-        appo = 1.27 * dm2 * x  # x in [m/MeV]
-        return np.sin(appo)
-
-    @staticmethod
-    def cos(x, dm2):
-        appo = 1.27 * dm2 * x  # x in [m/MeV]
-        return np.cos(appo)
-
     def eval_prob_jhep(self, E, ordering, plot_this=False):
 
         if (ordering < -1) or (ordering > 1):
