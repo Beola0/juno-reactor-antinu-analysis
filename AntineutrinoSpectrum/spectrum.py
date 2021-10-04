@@ -8,12 +8,18 @@ from reactor import ReactorSpectrum
 from oscillation import OscillationProbability
 from convolution import Convolution
 
+# TODO:
+# - remove parts for plotting
+# - adapt change of baselines and powers --> add methods, read from file
+# - initialise with .json file --> DONE
+# - update resolution with c term
+
 
 class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
 
-    def __init__(self, t12, m21, t13_N, m3l_N, t13_I, m3l_I, normalize=False):
-        ReactorSpectrum.__init__(self)
-        OscillationProbability.__init__(self, t12, m21, t13_N, m3l_N, t13_I, m3l_I)
+    def __init__(self, inputs_json_, normalize=False):
+        ReactorSpectrum.__init__(self, inputs_json_)
+        OscillationProbability.__init__(self, inputs_json_)
 
         self.baseline = 52.5  # [km]
 
@@ -28,8 +34,12 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
         self.sum_resol_N = 0
         self.sum_resol_I = 0
 
-        self.a = 0
-        self.b = 0
+        self.a = inputs_json_["energy_resolution"]["a"]
+        self.sigma_a = inputs_json_["energy_resolution"]["sigma_a"]
+        self.b = inputs_json_["energy_resolution"]["b"]
+        self.sigma_b = inputs_json_["energy_resolution"]["sigma_b"]
+        self.c = inputs_json_["energy_resolution"]["c"]
+        self.sigma_c = inputs_json_["energy_resolution"]["sigma_c"]
 
         self.baselines = []
         self.powers = []
@@ -37,6 +47,34 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
         self.norm_bool = False
         if normalize:
             self.norm_bool = True
+
+    def set_a(self, val_):
+        self.a = val_
+
+    def set_sigma_a(self, val_):
+        self.sigma_a = val_
+
+    def set_b(self, val_):
+        self.b = val_
+
+    def set_sigma_b(self, val_):
+        self.sigma_b = val_
+
+    def set_c(self, val_):
+        self.c = val_
+
+    def set_sigma_c(self, val_):
+        self.sigma_c = val_
+
+    def get_resol_params(self):
+        return self.a, self.b, self.c
+
+    def get_resol_params_sigmas(self):
+        return self.sigma_a, self.sigma_b, self.sigma_c
+
+    def set_L_P_distribution(self, baselines, powers):
+        self.baselines = baselines
+        self.powers = powers
 
     ### oscillated spectrum without energy resolution
     def osc_spectrum(self, E, ordering, normalize=False, plot_this=False, plot_un=False):
@@ -94,8 +132,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
                     ax.plot(E, self.norm_spectrum_un, 'k', linewidth=1.5, label=r'Unoscillated spectrum')
                 ax.plot(E, self.norm_osc_spect_N, 'b', linewidth=1, label=r'NO')
                 ax.legend()
-                fig.savefig('SpectrumPlots/osc_spectrum_N.pdf', format='pdf', transparent=True)
-                print('\nThe plot has been saved in SpectrumPlots/osc_spectrum_N.pdf')
+                # fig.savefig('SpectrumPlots/osc_spectrum_N.pdf', format='pdf', transparent=True)
+                # print('\nThe plot has been saved in SpectrumPlots/osc_spectrum_N.pdf')
 
             if ordering == -1:  # IO
 
@@ -106,8 +144,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
                     ax.plot(E, self.norm_spectrum_un, 'k', linewidth=1.5, label=r'Unoscillated spectrum')
                 ax.plot(E, self.norm_osc_spect_I, 'r', linewidth=1, label=r'IO')
                 ax.legend()
-                fig.savefig('SpectrumPlots/osc_spectrum_I.pdf', format='pdf', transparent=True)
-                print('\nThe plot has been saved in SpectrumPlots/osc_spectrum_I.pdf')
+                # fig.savefig('SpectrumPlots/osc_spectrum_I.pdf', format='pdf', transparent=True)
+                # print('\nThe plot has been saved in SpectrumPlots/osc_spectrum_I.pdf')
 
             if ordering == 0:  # both NO and IO
 
@@ -119,8 +157,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
                 ax.plot(E, self.norm_osc_spect_N, 'b', linewidth=1, label=r'NO')
                 ax.plot(E, self.norm_osc_spect_I, 'r--', linewidth=1, label=r'IO')
                 ax.legend()
-                fig.savefig('SpectrumPlots/osc_spectrum.pdf', format='pdf', transparent=True)
-                print('\nThe plot has been saved in SpectrumPlots/osc_spectrum.pdf')
+                # fig.savefig('SpectrumPlots/osc_spectrum.pdf', format='pdf', transparent=True)
+                # print('\nThe plot has been saved in SpectrumPlots/osc_spectrum.pdf')
 
         if ordering == 1:
             return self.norm_osc_spect_N
@@ -188,8 +226,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
                     ax.set_ylim(-0.005, 0.305)
                 ax.plot(E_fin, self.resol_N, 'b', linewidth=1, label=r'NO')
                 ax.legend()
-                fig.savefig('SpectrumPlots/resol_spectrum_N.pdf', format='pdf', transparent=True)
-                print('\nThe plot has been saved in SpectrumPlots/resol_spectrum_N.pdf')
+                # fig.savefig('SpectrumPlots/resol_spectrum_N.pdf', format='pdf', transparent=True)
+                # print('\nThe plot has been saved in SpectrumPlots/resol_spectrum_N.pdf')
 
             if ordering == -1:  # IO
 
@@ -197,8 +235,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
                     ax.set_ylim(-0.005, 0.305)
                 ax.plot(E_fin, self.resol_I, 'r', linewidth=1, label=r'IO')
                 ax.legend()
-                fig.savefig('SpectrumPlots/resol_spectrum_I.pdf', format='pdf', transparent=True)
-                print('\nThe plot has been saved in SpectrumPlots/resol_spectrum_I.pdf')
+                # fig.savefig('SpectrumPlots/resol_spectrum_I.pdf', format='pdf', transparent=True)
+                # print('\nThe plot has been saved in SpectrumPlots/resol_spectrum_I.pdf')
 
             if ordering == 0:  # both NO and IO
 
@@ -207,8 +245,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
                 ax.plot(E_fin, self.resol_N, 'b', linewidth=1, label=r'NO')
                 ax.plot(E_fin, self.resol_I, 'r--', linewidth=1, label=r'IO')
                 ax.legend()
-                fig.savefig('SpectrumPlots/resol_spectrum.pdf', format='pdf', transparent=True)
-                print('\nThe plot has been saved in SpectrumPlots/resol_spectrum.pdf')
+                # fig.savefig('SpectrumPlots/resol_spectrum.pdf', format='pdf', transparent=True)
+                # print('\nThe plot has been saved in SpectrumPlots/resol_spectrum.pdf')
 
         if ordering == 1:
             return self.resol_N
@@ -257,8 +295,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax_b.tick_params('both', direction='out', which='both')
             ax_b.legend()
             ax_b.grid(alpha=0.45)
-            fig_b.savefig('SpectrumPlots/baselines.pdf', format='pdf', transparent=True)
-            print('\nThe plot has been saved in SpectrumPlots/baselines.pdf')
+            # fig_b.savefig('SpectrumPlots/baselines.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/baselines.pdf')
 
         if normalize:
             norm_N = integrate.simps(self.sum_spectra_N, E)
@@ -286,8 +324,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             # ax.set_title(r'Antineutrino spectra with true baseline distribution')
             ax.legend()
             ax.grid(alpha=0.45)
-            fig.savefig('SpectrumPlots/sum.pdf', format='pdf', transparent=True)
-            print('\nThe plot has been saved in SpectrumPlots/sum.pdf')
+            # fig.savefig('SpectrumPlots/sum.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/sum.pdf')
 
         # set baseline to default ideal value
         self.baseline = 52.5
@@ -332,8 +370,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax_b.tick_params('both', direction='out', which='both')
             ax_b.legend()
             ax_b.grid(alpha=0.45)
-            fig_b.savefig('SpectrumPlots/resol_baselines.pdf', format='pdf', transparent=True)
-            print('\nThe plot has been saved in SpectrumPlots/resol_baselines.pdf')
+            # fig_b.savefig('SpectrumPlots/resol_baselines.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/resol_baselines.pdf')
 
         if normalize:
             norm_N = integrate.simps(self.sum_resol_N, E - 0.8)
@@ -362,8 +400,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
-            fig.savefig('SpectrumPlots/resol_sum.pdf', format='pdf', transparent=True)
-            print('\nThe plot has been saved in SpectrumPlots/resol_sum.pdf')
+            # fig.savefig('SpectrumPlots/resol_sum.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/resol_sum.pdf')
 
         # set baseline to default ideal value
         self.baseline = 52.5
@@ -409,10 +447,6 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             self.norm_osc_spect_I = self.norm_osc_spect_I / norm
 
         return self.norm_osc_spect_I
-
-    def set_resol_params(self, a, b):
-        self.a = a
-        self.b = b
 
     def eval_resol_NO(self, E_fin, t12, m21, t13, m3l):
 
@@ -465,11 +499,6 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             self.resol_I = self.resol_I / norm
 
         return self.resol_I
-
-    def set_L_P_distribution(self, baselines, powers):
-
-        self.baselines = baselines
-        self.powers = powers
 
     def eval_sum_NO(self, E, t12, m21, t13, m3l):
 
