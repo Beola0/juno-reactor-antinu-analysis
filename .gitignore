@@ -11,3 +11,5 @@ SpectrumPlots/
 Test_Stoch_Response/
 __pycache__/
 
+test_main.py
+
