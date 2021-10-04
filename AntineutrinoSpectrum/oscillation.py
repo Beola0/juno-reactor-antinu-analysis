@@ -5,10 +5,10 @@ import math
 
 # TODO:
 # - add methods to change osc params --> DONE
-# - divide NO and IO into separate methods + third method for both
+# - divide NO and IO into separate methods + third method for both --> DONE
 # - new method: change baseline --> self.baselines = [52.5]
 # - remove part for plotting
-# - add methods for osc probability in matter
+# - add methods for osc probability in matter --> DONE
 # - initialize with .json file --> DONE
 
 
