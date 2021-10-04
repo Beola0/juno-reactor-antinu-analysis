@@ -38,6 +38,8 @@ class OscillationProbability:
         self.vacuum_prob_N_E = 0
         self.vacuum_prob_I = 0
         self.vacuum_prob_I_E = 0
+        self.matter_prob_N_E = 0
+        self.matter_prob_I_E = 0
         self.jhep_prob_N = 0
         self.jhep_prob_E_N = 0
         self.jhep_prob_I = 0
@@ -214,13 +216,13 @@ class OscillationProbability:
 
         x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
 
-        A_N = math.pow(1 - self.sin2_13_N, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
-        B_N = (1 - self.sin2_12) * 4 * self.sin2_13_N * (1 - self.sin2_13_N)
-        C_N = self.sin2_12 * 4 * self.sin2_13_N * (1 - self.sin2_13_N)
+        aa = np.power(1. - self.sin2_13_N, 2) * 4. * self.sin2_12 * (1. - self.sin2_12)
+        bb = (1. - self.sin2_12) * 4. * self.sin2_13_N * (1. - self.sin2_13_N)
+        cc = self.sin2_12 * 4. * self.sin2_13_N * (1. - self.sin2_13_N)
 
-        self.vacuum_prob_N_E = 1. - A_N * self.sin2(x_energy, self.deltam_21) \
-                               - B_N * self.sin2(x_energy, self.deltam_3l_N) \
-                               - C_N * self.sin2(x_energy, self.deltam_3l_N - self.deltam_21)
+        self.vacuum_prob_N_E = 1. - aa * self.sin2(x_energy, self.deltam_21) \
+                               - bb * self.sin2(x_energy, self.deltam_3l_N) \
+                               - cc * self.sin2(x_energy, self.deltam_3l_N - self.deltam_21)
 
         if plot_this:
 
@@ -249,13 +251,13 @@ class OscillationProbability:
 
         x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
 
-        A_I = math.pow(1 - self.sin2_13_I, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
-        B_I = (1 - self.sin2_12) * 4 * self.sin2_13_I * (1 - self.sin2_13_I)
-        C_I = self.sin2_12 * 4 * self.sin2_13_I * (1 - self.sin2_13_I)
+        aa = np.power(1. - self.sin2_13_I, 2) * 4. * self.sin2_12 * (1. - self.sin2_12)
+        bb = (1. - self.sin2_12) * 4. * self.sin2_13_I * (1. - self.sin2_13_I)
+        cc = self.sin2_12 * 4. * self.sin2_13_I * (1. - self.sin2_13_I)
 
-        self.vacuum_prob_I_E = 1. - A_I * self.sin2(x_energy, self.deltam_21) \
-                               - B_I * self.sin2(x_energy, self.deltam_3l_I + self.deltam_21) \
-                               - C_I * self.sin2(x_energy, self.deltam_3l_I)
+        self.vacuum_prob_I_E = 1. - aa * self.sin2(x_energy, self.deltam_21) \
+                               - bb * self.sin2(x_energy, self.deltam_3l_I + self.deltam_21) \
+                               - cc * self.sin2(x_energy, self.deltam_3l_I)
 
         if plot_this:
 
@@ -308,6 +310,146 @@ class OscillationProbability:
             # print('\nThe plot has been saved in SpectrumPlots/prob_E.pdf')
 
         return self.vacuum_prob_N_E, self.vacuum_prob_I_E
+
+    def potential(self, nu_energy):
+        y_e = 0.5
+        return -1.52e-4 * y_e * self.rho * nu_energy * 1.e-3
+
+    def eval_matter_prob_N_energy(self, nu_energy, plot_this=False):
+
+        x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
+
+        deltam_ee = self.deltam_3l_N - self.sin2_12 * self.deltam_21
+        deltam_32 = self.deltam_3l_N - self.deltam_21
+
+        c2_12 = 1. - self.sin2_12
+        c2_13 = 1. - self.sin2_13_N
+        c_2_12 = 1. - 2. * self.sin2_12
+        appo_12 = c2_13 * self.potential(nu_energy) / self.deltam_21
+
+        sin2_12_m = self.sin2_12 * (1. + 2. * c2_12 * appo_12 + 3. * c2_12 * c_2_12 * appo_12 * appo_12)
+        deltam_21_m = self.deltam_21 * (1. - c_2_12 * appo_12 + 2. * self.sin2_12 * c2_12 * appo_12 * appo_12)
+        sin2_13_m = self.sin2_13_N * (1. + 2. * c2_13 * self.potential(nu_energy) / deltam_ee)
+        deltam_31_m = self.deltam_3l_N \
+                      * (1. - self.potential(nu_energy) / self.deltam_3l_N * (c2_12 * c2_13 - self.sin2_13_N
+                                                                              - self.sin2_12 * c2_12 * c2_13 * appo_12))
+        deltam_32_m = deltam_32 \
+                      * (1. - self.potential(nu_energy) / deltam_32 * (self.sin2_12 * c2_13 - self.sin2_13_N
+                                                                       + self.sin2_12 * c2_12 * c2_13 * appo_12))
+
+        aa = np.power(1. - sin2_13_m, 2) * 4. * sin2_12_m * (1. - sin2_12_m)
+        bb = (1. - sin2_12_m) * 4 * sin2_13_m * (1. - sin2_13_m)
+        cc = sin2_12_m * 4 * sin2_13_m * (1. - sin2_13_m)
+
+        self.matter_prob_N_E = 1. - aa * self.sin2(x_energy, deltam_21_m) \
+                               - bb * self.sin2(x_energy, deltam_31_m) \
+                               - cc * self.sin2(x_energy, deltam_32_m)
+
+        if plot_this:
+
+            loc = plticker.MultipleLocator(base=2.0)
+            loc1 = plticker.MultipleLocator(base=0.5)
+            fig1 = plt.figure(figsize=[8, 5.5])
+            ax1 = fig1.add_subplot(111)
+            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
+            ax1.grid(alpha=0.45)
+            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
+            ax1.set_xlim(1.5, 10.5)
+            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
+            ax1.set_ylim(0.08, 1.02)
+            # ax1.set_title(r'Survival probability')
+            ax1.xaxis.set_major_locator(loc)
+            ax1.xaxis.set_minor_locator(loc1)
+            ax1.tick_params('both', direction='out', which='both')
+            ax1.plot(nu_energy, self.matter_prob_N_E, 'b', linewidth=1, label=r'NO')
+            ax1.legend(loc='lower right')
+            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
+
+        return self.matter_prob_N_E
+
+    def eval_matter_prob_I_energy(self, nu_energy, plot_this=False):
+
+        x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
+
+        deltam_ee = self.deltam_3l_I + self.deltam_21 * (1. - self.sin2_12)
+        deltam_31 = self.deltam_3l_I + self.deltam_21
+
+        c2_12 = 1. - self.sin2_12
+        c2_13 = 1. - self.sin2_13_I
+        c_2_12 = 1. - 2. * self.sin2_12
+        appo_12 = c2_13 * self.potential(nu_energy) / self.deltam_21
+
+        sin2_12_m = self.sin2_12 * (1. + 2. * c2_12 * appo_12 + 3. * c2_12 * c_2_12 * appo_12 * appo_12)
+        deltam_21_m = self.deltam_21 * (1. - c_2_12 * appo_12 + 2. * self.sin2_12 * c2_12 * appo_12 * appo_12)
+        sin2_13_m = self.sin2_13_I * (1. + 2. * c2_13 * self.potential(nu_energy) / deltam_ee)
+        deltam_31_m = deltam_31 \
+                      * (1. - self.potential(nu_energy) / deltam_31 * (c2_12 * c2_13 - self.sin2_13_I
+                                                                       - self.sin2_12 * c2_12 * c2_13 * appo_12))
+        deltam_32_m = self.deltam_3l_I \
+                      * (1. - self.potential(nu_energy) / self.deltam_3l_I * (self.sin2_12 * c2_13 - self.sin2_13_I
+                                                                              + self.sin2_12 * c2_12 * c2_13 * appo_12))
+
+        aa = np.power(1. - sin2_13_m, 2) * 4. * sin2_12_m * (1. - sin2_12_m)
+        bb = (1. - sin2_12_m) * 4 * sin2_13_m * (1. - sin2_13_m)
+        cc = sin2_12_m * 4 * sin2_13_m * (1. - sin2_13_m)
+
+        self.matter_prob_I_E = 1. - aa * self.sin2(x_energy, deltam_21_m) \
+                               - bb * self.sin2(x_energy, deltam_31_m) \
+                               - cc * self.sin2(x_energy, deltam_32_m)
+
+        if plot_this:
+
+            loc = plticker.MultipleLocator(base=2.0)
+            loc1 = plticker.MultipleLocator(base=0.5)
+            fig1 = plt.figure(figsize=[8, 5.5])
+            ax1 = fig1.add_subplot(111)
+            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
+            ax1.grid(alpha=0.45)
+            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
+            ax1.set_xlim(1.5, 10.5)
+            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
+            ax1.set_ylim(0.08, 1.02)
+            # ax1.set_title(r'Survival probability')
+            ax1.xaxis.set_major_locator(loc)
+            ax1.xaxis.set_minor_locator(loc1)
+            ax1.tick_params('both', direction='out', which='both')
+            ax1.plot(nu_energy, self.matter_prob_I_E, 'b', linewidth=1, label=r'NO')
+            ax1.legend(loc='lower right')
+            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
+
+        return self.matter_prob_I_E
+
+    def eval_matter_prob_energy(self, nu_energy, plot_this=False):
+
+        self.eval_matter_prob_N_energy(nu_energy)
+        self.eval_matter_prob_I_energy(nu_energy)
+
+        if plot_this:
+
+            loc = plticker.MultipleLocator(base=2.0)
+            loc1 = plticker.MultipleLocator(base=0.5)
+            fig1 = plt.figure(figsize=[8, 5.5])
+            ax1 = fig1.add_subplot(111)
+            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
+            ax1.grid(alpha=0.45)
+            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
+            ax1.set_xlim(1.5, 10.5)
+            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
+            ax1.set_ylim(0.08, 1.02)
+            # ax1.set_title(r'Survival probability')
+            ax1.xaxis.set_major_locator(loc)
+            ax1.xaxis.set_minor_locator(loc1)
+            ax1.tick_params('both', direction='out', which='both')
+            ax1.plot(nu_energy, self.matter_prob_N_E, 'b', linewidth=1, label=r'NO')
+            ax1.plot(nu_energy, self.matter_prob_I_E, 'r--', linewidth=1, label=r'IO')
+            ax1.legend(loc='lower right')
+            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
+
+        return self.matter_prob_N_E, self.matter_prob_I_E
+
 
     ### evaluation of the survival probability with the same formula as above written in an other way
     ### see JHEP05(2013)131, eq. (2.6), Japanese (https://arxiv.org/abs/1210.8141)
