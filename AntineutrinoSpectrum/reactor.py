@@ -1,13 +1,16 @@
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import numpy as np
+import pandas as pd
 from scipy.integrate import simps
+from scipy.interpolate import interp1d
 
 # TODO:
 # - initialize class with .json file with fission fractions --> DONE
 # - create spectrum from inputs, like DYB spectrum
 # - remove part for plotting
 # - add methods to change fission fractions --> DONE
+# - move IBD part to DetectorResponse
 
 
 class ReactorSpectrum:
@@ -97,10 +100,14 @@ class ReactorSpectrum:
             ax = fig.add_subplot(111)
             fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
             ax.plot(nu_energy_, self.tot_flux, 'k', linewidth=1.5, label='Total')
-            ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            ax.plot(nu_energy_, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
+            # ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
+            # ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
+            # ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
+            # ax.plot(nu_energy_, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
+            ax.plot(nu_energy_, u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
+            ax.plot(nu_energy_, pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
+            ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
+            ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
             ax.legend()
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
@@ -113,6 +120,30 @@ class ReactorSpectrum:
             # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
 
         return self.tot_flux
+
+    ### TODO: move to DetectorResponse class
+
+    ### cross section from Strumia and Vissani - common inputs
+    def cross_section_sv(self, nu_energy_):
+
+        input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.txt", sep="\t",
+                             names=["nu_energy", "cross_section"], header=None)
+
+        f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
+        self.x_sec = f_appo(nu_energy_)
+
+        return self.x_sec
+
+    ### cross section from Vogel and Beacom - common inputs
+    def cross_section_vb(self, nu_energy_):
+
+        input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.txt", sep="\t",
+                             names=["nu_energy", "cross_section"], header=None)
+
+        f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
+        self.x_sec = f_appo(nu_energy_)
+
+        return self.x_sec
 
     def cross_section(self, nu_energy_, plot_this=False):
         """
