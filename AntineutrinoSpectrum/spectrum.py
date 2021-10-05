@@ -12,18 +12,16 @@ from detector_response import DetectorResponse
 # - remove parts for plotting
 # - adapt change of baselines and powers --> add methods, read from file
 # - initialise with .json file --> DONE
-# - update resolution with c term --> DONE but nuisance are missing
 # - include sum over more reactors in single method
 # - use DetectorResponse as parent class? --> move a b c in Detector Response --> DONE
 
 
-class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
+class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorResponse):
 
     def __init__(self, inputs_json_, normalize=False):
         ReactorSpectrum.__init__(self, inputs_json_)
         OscillationProbability.__init__(self, inputs_json_)
-
-        self.inputs_json = inputs_json_
+        DetectorResponse.__init__(self, inputs_json_)
 
         self.baseline = 52.5  # [km]
 
@@ -45,7 +43,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
         if normalize:
             self.norm_bool = True
 
-    def set_L_P_distribution(self, baselines, powers):  # TODO: need adjustement
+    def set_L_P_distribution(self, baselines, powers):  # TODO: need adjustments
         self.baselines = baselines
         self.powers = powers
 
@@ -194,10 +192,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
 
         self.osc_spectrum_N(nu_energy, matter=matter)
 
-        det_response = DetectorResponse(self.inputs_json)
         print('adding experimental resolution via numerical convolution, it might take some time.')
-
-        self.resol_N = det_response.gaussian_smearing_abc(self.norm_osc_spect_N, dep_energy, visible_energy_)
+        self.resol_N = DetectorResponse.gaussian_smearing_abc(self, self.norm_osc_spect_N, dep_energy, visible_energy_)
         if normalize:
             norm_N = integrate.simps(self.resol_N, visible_energy_)
             self.resol_N = self.resol_N / norm_N
@@ -239,10 +235,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
 
         self.osc_spectrum_I(nu_energy, matter=matter)
 
-        det_response = DetectorResponse(self.inputs_json)
         print('adding experimental resolution via numerical convolution, it might take some time.')
-
-        self.resol_I = det_response.gaussian_smearing_abc(self.norm_osc_spect_I, dep_energy, visible_energy_)
+        self.resol_I = DetectorResponse.gaussian_smearing_abc(self, self.norm_osc_spect_I, dep_energy, visible_energy_)
         if normalize:
             norm_I = integrate.simps(self.resol_I, visible_energy_)
             self.resol_I = self.resol_I / norm_I
