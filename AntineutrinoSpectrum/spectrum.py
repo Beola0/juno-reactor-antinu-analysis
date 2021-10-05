@@ -14,7 +14,7 @@ from detector_response import DetectorResponse
 # - initialise with .json file --> DONE
 # - update resolution with c term --> DONE but nuisance are missing
 # - include sum over more reactors in single method
-# - use DetectorResponse as parent class?
+# - use DetectorResponse as parent class? --> move a b c in Detector Response --> DONE
 
 
 class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
@@ -22,6 +22,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
     def __init__(self, inputs_json_, normalize=False):
         ReactorSpectrum.__init__(self, inputs_json_)
         OscillationProbability.__init__(self, inputs_json_)
+
+        self.inputs_json = inputs_json_
 
         self.baseline = 52.5  # [km]
 
@@ -36,13 +38,6 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
         self.sum_resol_N = 0.
         self.sum_resol_I = 0.
 
-        self.a = inputs_json_["energy_resolution"]["a"]
-        self.sigma_a = inputs_json_["energy_resolution"]["sigma_a"]
-        self.b = inputs_json_["energy_resolution"]["b"]
-        self.sigma_b = inputs_json_["energy_resolution"]["sigma_b"]
-        self.c = inputs_json_["energy_resolution"]["c"]
-        self.sigma_c = inputs_json_["energy_resolution"]["sigma_c"]
-
         self.baselines = []
         self.powers = []
 
@@ -50,31 +45,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
         if normalize:
             self.norm_bool = True
 
-    def set_a(self, val_):
-        self.a = val_
-
-    def set_sigma_a(self, val_):
-        self.sigma_a = val_
-
-    def set_b(self, val_):
-        self.b = val_
-
-    def set_sigma_b(self, val_):
-        self.sigma_b = val_
-
-    def set_c(self, val_):
-        self.c = val_
-
-    def set_sigma_c(self, val_):
-        self.sigma_c = val_
-
-    def get_resol_params(self):
-        return self.a, self.b, self.c
-
-    def get_resol_params_sigmas(self):
-        return self.sigma_a, self.sigma_b, self.sigma_c
-
-    def set_L_P_distribution(self, baselines, powers):
+    def set_L_P_distribution(self, baselines, powers):  # TODO: need adjustement
         self.baselines = baselines
         self.powers = powers
 
@@ -82,9 +53,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
 
         ReactorSpectrum.unosc_spectrum(self, nu_energy_)
         if matter:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit] (in matter)'
             print("evaluating oscillation probability in matter - N")
             prob = OscillationProbability.eval_matter_prob_N_energy(self, nu_energy_)
         else:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit]'
             print("evaluating oscillation probability in vacuum - N")
             prob = OscillationProbability.eval_vacuum_prob_N_energy(self, nu_energy_)
 
@@ -106,7 +79,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax.set_xlim(1.5, 10.5)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_ylim(-0.005, 0.095)
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
+            ax.set_ylabel(ylabel_)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
@@ -127,9 +100,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
 
         ReactorSpectrum.unosc_spectrum(self, nu_energy_)
         if matter:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit] (in matter)'
             print("evaluating oscillation probability in matter - I")
             prob = OscillationProbability.eval_matter_prob_I_energy(self, nu_energy_)
         else:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit]'
             print("evaluating oscillation probability in vacuum - I")
             prob = OscillationProbability.eval_vacuum_prob_I_energy(self, nu_energy_)
 
@@ -151,7 +126,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax.set_xlim(1.5, 10.5)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_ylim(-0.005, 0.095)
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
+            ax.set_ylabel(ylabel_)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
@@ -173,6 +148,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
         self.osc_spectrum_N(nu_energy_, matter=matter, normalize=normalize)
         self.osc_spectrum_I(nu_energy_, matter=matter, normalize=normalize)
 
+        if matter:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit] (in matter)'
+        else:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit]'
+
         if plot_this:
 
             loc = plticker.MultipleLocator(base=2.0)
@@ -185,7 +165,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax.set_xlim(1.5, 10.5)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_ylim(-0.005, 0.095)
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
+            ax.set_ylabel(ylabel_)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
@@ -214,14 +194,18 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
 
         self.osc_spectrum_N(nu_energy, matter=matter)
 
-        det_response = DetectorResponse()
+        det_response = DetectorResponse(self.inputs_json)
         print('adding experimental resolution via numerical convolution, it might take some time.')
 
-        self.resol_N = det_response.gaussian_smearing(self.norm_osc_spect_N, dep_energy, visible_energy_,
-                                                      a=self.a, b=self.b, c=self.c)
+        self.resol_N = det_response.gaussian_smearing_abc(self.norm_osc_spect_N, dep_energy, visible_energy_)
         if normalize:
             norm_N = integrate.simps(self.resol_N, visible_energy_)
             self.resol_N = self.resol_N / norm_N
+
+        if matter:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit] (in matter)'
+        else:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit]'
 
         if plot_this:
 
@@ -234,7 +218,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
             ax.set_xlim(0.5, 9.5)
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
+            ax.set_ylabel(ylabel_)
             ax.set_ylim(-0.005, 0.095)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
@@ -255,14 +239,18 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
 
         self.osc_spectrum_I(nu_energy, matter=matter)
 
-        det_response = DetectorResponse()
+        det_response = DetectorResponse(self.inputs_json)
         print('adding experimental resolution via numerical convolution, it might take some time.')
 
-        self.resol_I = det_response.gaussian_smearing(self.norm_osc_spect_I, dep_energy, visible_energy_,
-                                                      a=self.a, b=self.b, c=self.c)
+        self.resol_I = det_response.gaussian_smearing_abc(self.norm_osc_spect_I, dep_energy, visible_energy_)
         if normalize:
             norm_I = integrate.simps(self.resol_I, visible_energy_)
             self.resol_I = self.resol_I / norm_I
+
+        if matter:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit] (in matter)'
+        else:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit]'
 
         if plot_this:
 
@@ -275,7 +263,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
             ax.set_xlim(0.5, 9.5)
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
+            ax.set_ylabel(ylabel_)
             ax.set_ylim(-0.005, 0.095)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
@@ -294,6 +282,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
         self.resol_spectrum_N(visible_energy_, matter=matter, normalize=normalize)
         self.resol_spectrum_I(visible_energy_, matter=matter, normalize=normalize)
 
+        if matter:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit] (in matter)'
+        else:
+            ylabel_ = r'$N(\bar{\nu})$ [arb. unit]'
+
         if plot_this:
 
             loc = plticker.MultipleLocator(base=2.0)
@@ -305,7 +298,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum):
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
             ax.set_xlim(0.5, 9.5)
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
+            ax.set_ylabel(ylabel_)
             ax.set_ylim(-0.005, 0.095)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)

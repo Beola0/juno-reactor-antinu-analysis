@@ -417,7 +417,7 @@ class OscillationProbability:
             # fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
             ax1.grid(alpha=0.45)
             ax1.set_xlabel(r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]')
-            ax1.set_xlim(0.04, 100)
+            ax1.set_xlim(0.04, 100)  # 0. - 50
             ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
             ax1.set_ylim(0.08, 1.02)
             x = np.arange(0.01, 500000, 1.)  # [m/MeV]
