@@ -58,40 +58,26 @@ class ReactorSpectrum:
         return self.f241pu
 
     @staticmethod
-    def reactor_exp(x_, a_, b_, c_):
-        res = np.exp(a_ - b_ * x_ - c_ * (x_ ** 2))
-        return res
+    def isotopic_spectrum_exp(x_, params_):
+        n_ = len(params_)
+        appo = 0.
+        for j_ in np.arange(n_):
+            appo = appo + params_[j_] * np.power(x_, j_)
+        return np.exp(appo)
 
-    def flux(self, nu_energy_, plot_this=False):
-        """
-        Evaluate the reactor antineutrino flux.
+    def isotopic_spectrum_vogel(self, nu_energy_, plot_this=False):
 
-        For given input energies, it evaluates the total reactor flux and the single contributions of the four isotopes
-        of the reactor fuel
+        ### params taken from Vogel, Engel, PRD 39-11 pp 3378, 1989
+        params_u235 = [0.870, -0.160, -0.091]
+        params_pu239 = [0.896, -0.239, -0.0981]
+        params_u238 = [0.976, -0.162, -0.0790]
+        params_pu241 = [0.793, -0.080, -0.1085]
+        u235 = self.isotopic_spectrum_exp(nu_energy_, params_u235)
+        pu239 = self.isotopic_spectrum_exp(nu_energy_, params_pu239)
+        u238 = self.isotopic_spectrum_exp(nu_energy_, params_u238)
+        pu241 = self.isotopic_spectrum_exp(nu_energy_, params_pu241)
 
-        Parameters
-        ----------
-        nu_energy_ : numpy array
-            Antineutrino energies.
-        plot_this : bool, optional
-            A flag used to plot the contributions of the four core isotopes to the flux and the total flux, as functions
-            of energy (default is False).
-
-        Returns
-        -------
-        tot_flux : numpy array
-            Total flux
-
-        References
-        ----------
-        http://inspirehep.net/record/25814/ and https://arxiv.org/abs/0807.3203, eq. (2)
-        """
-        u235 = self.reactor_exp(nu_energy_, 0.870, 0.160, 0.091)
-        pu239 = self.reactor_exp(nu_energy_, 0.896, 0.239, 0.0981)
-        u238 = self.reactor_exp(nu_energy_, 0.976, 0.162, 0.0790)
-        pu241 = self.reactor_exp(nu_energy_, 0.793, 0.080, 0.1085)
-
-        self.tot_flux = self.f235u * u235 + self.f239pu * pu239 + self.f238u * u238 + self.f241pu * pu241
+        appo = self.f235u * u235 + self.f239pu * pu239 + self.f238u * u238 + self.f241pu * pu241
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
@@ -99,7 +85,7 @@ class ReactorSpectrum:
             fig = plt.figure()
             ax = fig.add_subplot(111)
             fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.tot_flux, 'k', linewidth=1.5, label='Total')
+            ax.plot(nu_energy_, appo, 'k', linewidth=1.5, label='Total')
             # ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
             # ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
             # ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
@@ -112,17 +98,58 @@ class ReactorSpectrum:
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
             ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\Phi_{\nu}$ [arb. unit]')
+            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)')
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
             # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
             # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
 
-        return self.tot_flux
+        return appo
+
+    def isotopic_spectrum_hubermueller(self, nu_energy_, plot_this=False):
+
+        ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for others
+        params_u235 = [4.367, -4.577, 2.100, -5.294e-1, 6.186e-2, -2.777e-3]
+        params_pu239 = [4.757, -5.392, 2.563, -6.596e-1, 7.820e-2, -3.536e-3]
+        params_u238 = [4.833e-1, 1.927e-1, -1.283e-1, -6.762e-3, 2.233e-3, -1.536e-4]
+        params_pu241 = [2.990, -2.882, 1.278, -3.343e-1, 3.905e-2, -1.754e-3]
+        u235 = self.isotopic_spectrum_exp(nu_energy_, params_u235)
+        pu239 = self.isotopic_spectrum_exp(nu_energy_, params_pu239)
+        u238 = self.isotopic_spectrum_exp(nu_energy_, params_u238)
+        pu241 = self.isotopic_spectrum_exp(nu_energy_, params_pu241)
+
+        appo = self.f235u * u235 + self.f239pu * pu239 + self.f238u * u238 + self.f241pu * pu241
+
+        if plot_this:
+            loc = plticker.MultipleLocator(base=2.0)
+            loc1 = plticker.MultipleLocator(base=0.5)
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
+            ax.plot(nu_energy_, appo, 'k', linewidth=1.5, label='Total')
+            # ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
+            # ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
+            # ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
+            # ax.plot(nu_energy_, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
+            ax.plot(nu_energy_, u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
+            ax.plot(nu_energy_, pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
+            ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
+            ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
+            ax.legend()
+            ax.grid(alpha=0.45)
+            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
+            ax.set_xlim(1.5, 10.5)
+            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)')
+            ax.xaxis.set_major_locator(loc)
+            ax.xaxis.set_minor_locator(loc1)
+            ax.tick_params('both', direction='out', which='both')
+            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+
+        return appo
 
     ### TODO: move to DetectorResponse class
-
     ### cross section from Strumia and Vissani - common inputs
     def cross_section_sv(self, nu_energy_):
 
