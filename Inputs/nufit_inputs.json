@@ -31,5 +31,16 @@
 		"sigma_b" : 0.01e-2,
 		"c" : 1.11e-2,
 		"sigma_c" : 0.04e-2
-	}
+	},
+	"detector" : {
+		"mass" : 20,
+		"f_H" : 0.1201,
+		"alpha_H" : 0.999885,
+		"m_H" : 1.007825032,
+		"IBD_efficiency" : 0.822,
+		"daq_time" : 365.25,
+		"duty_cycle" : 0.917
+	},
+	"thermal_power" : 26.6,
+	"baseline" : 52.5
 }

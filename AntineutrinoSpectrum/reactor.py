@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
+import math
 
 # TODO:
 # - initialize class with .json file with fission fractions --> DONE
@@ -17,10 +18,18 @@ class ReactorSpectrum:
 
     def __init__(self, inputs_json_):
 
-        self.f235u = inputs_json_["fission_fractions"]["235U"]
-        self.f239pu = inputs_json_["fission_fractions"]["239Pu"]
-        self.f238u = inputs_json_["fission_fractions"]["238U"]
-        self.f241pu = inputs_json_["fission_fractions"]["241Pu"]
+        self.fiss_frac_235u = inputs_json_["fission_fractions"]["235U"]
+        self.fiss_frac_239pu = inputs_json_["fission_fractions"]["239Pu"]
+        self.fiss_frac_238u = inputs_json_["fission_fractions"]["238U"]
+        self.fiss_frac_241pu = inputs_json_["fission_fractions"]["241Pu"]
+
+        self.fiss_en_235u = inputs_json_["mean_fission_energy"]["235U"]
+        self.fiss_en_239pu = inputs_json_["mean_fission_energy"]["239Pu"]
+        self.fiss_en_238u = inputs_json_["mean_fission_energy"]["238U"]
+        self.fiss_en_241pu = inputs_json_["mean_fission_energy"]["241Pu"]
+
+        self.thermal_power = inputs_json_["thermal_power"]
+        self.baseline = inputs_json_["baseline"]
 
         self.tot_flux = 0.
         self.x_sec = 0.
@@ -28,34 +37,76 @@ class ReactorSpectrum:
         self.norm_spectrum_un = 0.
         
     def set_fission_fractions(self, f235u_, f239pu_, f238u_, f241pu_):
-        self.f235u = f235u_
-        self.f239pu = f239pu_
-        self.f238u = f238u_
-        self.f241pu = f241pu_
+        self.fiss_frac_235u = f235u_
+        self.fiss_frac_239pu = f239pu_
+        self.fiss_frac_238u = f238u_
+        self.fiss_frac_241pu = f241pu_
         
     def set_f235u(self, f235u_):
-        self.f235u = f235u_
+        self.fiss_frac_235u = f235u_
         
     def set_f238u(self, f238u_):
-        self.f238u = f238u_
+        self.fiss_frac_238u = f238u_
 
     def set_f239pu(self, f239pu_):
-        self.f239pu = f239pu_
+        self.fiss_frac_239pu = f239pu_
         
     def set_f241pu(self, f241pu_):
-        self.f241pu = f241pu_
+        self.fiss_frac_241pu = f241pu_
         
     def get_f235u(self):
-        return self.f235u
+        return self.fiss_frac_235u
         
     def get_f238u(self):
-        return self.f238u
+        return self.fiss_frac_238u
 
     def get_f239pu(self):
-        return self.f239pu
+        return self.fiss_frac_239pu
         
     def get_f241pu(self):
-        return self.f241pu
+        return self.fiss_frac_241pu
+
+    def set_fission_energies(self, e235u_, e239pu_, e238u_, e241pu_):
+        self.fiss_en_235u = e235u_
+        self.fiss_en_239pu = e239pu_
+        self.fiss_en_238u = e238u_
+        self.fiss_en_241pu = e241pu_
+
+    def set_e235u(self, e235u_):
+        self.fiss_en_235u = e235u_
+
+    def set_e238u(self, e238u_):
+        self.fiss_en_238u = e238u_
+
+    def set_e239pu(self, e239pu_):
+        self.fiss_en_239pu = e239pu_
+
+    def set_e241pu(self, e241pu_):
+        self.fiss_en_241pu = e241pu_
+
+    def get_e235u(self):
+        return self.fiss_en_235u
+
+    def get_e238u(self):
+        return self.fiss_en_238u
+
+    def get_e239pu(self):
+        return self.fiss_en_239pu
+
+    def get_e241pu(self):
+        return self.fiss_en_241pu
+
+    def set_th_power(self, val_):
+        self.thermal_power = val_
+
+    def get_th_power(self):
+        return self.thermal_power
+
+    def set_baseline(self, val_):
+        self.baseline = val_
+
+    def get_baseline(self):
+        return self.baseline
 
     @staticmethod
     def isotopic_spectrum_exp(x_, params_):
@@ -77,7 +128,8 @@ class ReactorSpectrum:
         u238 = self.isotopic_spectrum_exp(nu_energy_, params_u238)
         pu241 = self.isotopic_spectrum_exp(nu_energy_, params_pu241)
 
-        appo = self.f235u * u235 + self.f239pu * pu239 + self.f238u * u238 + self.f241pu * pu241
+        appo = self.fiss_frac_235u * u235 + self.fiss_frac_239pu * pu239 \
+               + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
@@ -119,7 +171,8 @@ class ReactorSpectrum:
         u238 = self.isotopic_spectrum_exp(nu_energy_, params_u238)
         pu241 = self.isotopic_spectrum_exp(nu_energy_, params_pu241)
 
-        appo = self.f235u * u235 + self.f239pu * pu239 + self.f238u * u238 + self.f241pu * pu241
+        appo = self.fiss_frac_235u * u235 + self.fiss_frac_239pu * pu239 \
+               + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
@@ -148,6 +201,64 @@ class ReactorSpectrum:
             # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
 
         return appo
+
+    def reactor_spectrum(self, nu_energy_, plot_this=False):
+
+        const = 6.241509e21
+
+        tot_iso_spectrum = self.isotopic_spectrum_vogel(nu_energy_)
+
+        en_per_fiss = self.fiss_frac_235u * self.fiss_en_235u + self.fiss_frac_239pu * self.fiss_en_239pu \
+                      + self.fiss_frac_238u * self.fiss_en_238u + self.fiss_frac_241pu * self.fiss_en_241pu
+
+        react_spect = self.thermal_power / en_per_fiss * tot_iso_spectrum * const
+
+        if plot_this:
+            loc = plticker.MultipleLocator(base=2.0)
+            loc1 = plticker.MultipleLocator(base=0.5)
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
+            ax.plot(nu_energy_, react_spect, 'k', linewidth=1.5, label='Reactor spectrum')
+            ax.legend()
+            ax.grid(alpha=0.45)
+            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
+            ax.set_xlim(1.5, 10.5)
+            ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]')
+            ax.xaxis.set_major_locator(loc)
+            ax.xaxis.set_minor_locator(loc1)
+            ax.tick_params('both', direction='out', which='both')
+            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+
+        return react_spect
+
+    def reactor_flux_no_osc(self, nu_energy_, plot_this=False):
+
+        den = 4. * math.pi * np.power(self.baseline, 2)
+        react_spect = self.reactor_spectrum(nu_energy_)
+
+        react_flux = react_spect / den
+
+        if plot_this:
+            loc = plticker.MultipleLocator(base=2.0)
+            loc1 = plticker.MultipleLocator(base=0.5)
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
+            ax.plot(nu_energy_, react_flux, 'k', linewidth=1.5, label='Reactor flux')
+            ax.legend()
+            ax.grid(alpha=0.45)
+            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
+            ax.set_xlim(1.5, 10.5)
+            ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]')
+            ax.xaxis.set_major_locator(loc)
+            ax.xaxis.set_minor_locator(loc1)
+            ax.tick_params('both', direction='out', which='both')
+            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
+            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+
+        return react_flux
 
     ### TODO: move to DetectorResponse class
     ### cross section from Strumia and Vissani - common inputs
@@ -249,12 +360,12 @@ class ReactorSpectrum:
         norm_spectrum_un : numpy array
             normalized unoscillated spectrum
         """
-        self.flux(nu_energy_, plot_this=False)
+        appo = self.isotopic_spectrum_vogel(nu_energy_, plot_this=False)
         self.cross_section(nu_energy_, plot_this=False)
 
-        self.spectrum_un = self.tot_flux * self.x_sec
-        integral = simps(self.spectrum_un, nu_energy_)
-        self.norm_spectrum_un = self.spectrum_un / integral
+        self.spectrum_un = appo * self.x_sec
+        # integral = simps(self.spectrum_un, nu_energy_)
+        # self.norm_spectrum_un = self.spectrum_un / integral
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
@@ -262,13 +373,13 @@ class ReactorSpectrum:
             fig = plt.figure()
             ax = fig.add_subplot(111)
             fig.subplots_adjust(left=0.12, right=0.96, top=0.95)
-            # ax.plot(nu_energy_,self.spectrum_un,'b',linewidth=1,label='spectrum') # not normalized spectrum
-            ax.plot(nu_energy_, self.norm_spectrum_un, 'k', linewidth=1.5, label='spectrum')  # normalized spectrum
+            ax.plot(nu_energy_, self.spectrum_un, 'k', linewidth=1.5, label='spectrum')  # not normalized spectrum
+            # ax.plot(nu_energy_, self.norm_spectrum_un, 'k', linewidth=1.5, label='spectrum')  # normalized spectrum
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax.set_ylim(-0.015, 0.33)
+            # ax.set_ylim(-0.015, 0.33)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
