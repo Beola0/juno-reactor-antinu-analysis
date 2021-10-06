@@ -31,10 +31,13 @@ class ReactorSpectrum:
         self.thermal_power = inputs_json_["thermal_power"]
         self.baseline = inputs_json_["baseline"]
 
+        self.inputs_json = inputs_json_
+
         self.tot_flux = 0.
         self.x_sec = 0.
-        self.spectrum_un = 0.
-        self.norm_spectrum_un = 0.
+        self.spectrum_unosc = 0.
+        # self.norm_spectrum_un = 0.
+        self.proton_number = 0.
         
     def set_fission_fractions(self, f235u_, f239pu_, f238u_, f241pu_):
         self.fiss_frac_235u = f235u_
@@ -235,7 +238,7 @@ class ReactorSpectrum:
 
     def reactor_flux_no_osc(self, nu_energy_, plot_this=False):
 
-        den = 4. * math.pi * np.power(self.baseline, 2)
+        den = 4. * math.pi * np.power(self.baseline*1.e5, 2)
         react_spect = self.reactor_spectrum(nu_energy_)
 
         react_flux = react_spect / den
@@ -261,8 +264,22 @@ class ReactorSpectrum:
         return react_flux
 
     ### TODO: move to DetectorResponse class
+
+    def eval_n_protons(self):
+
+        target_mass = self.inputs_json["detector"]["mass"] * 1000 * 1000.
+        h_mass = self.inputs_json["detector"]["m_H"] * 1.660539066e-27
+        h_fraction = self.inputs_json["detector"]["f_H"]
+        h1_abundance = self.inputs_json["detector"]["alpha_H"]
+        self.proton_number = target_mass * h_fraction * h1_abundance / h_mass
+
+        return self.proton_number
+
     ### cross section from Strumia and Vissani - common inputs
     def cross_section_sv(self, nu_energy_):
+
+        if self.proton_number == 0:
+            self.eval_n_protons()
 
         input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.txt", sep="\t",
                              names=["nu_energy", "cross_section"], header=None)
@@ -270,10 +287,13 @@ class ReactorSpectrum:
         f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
         self.x_sec = f_appo(nu_energy_)
 
-        return self.x_sec
+        return self.x_sec * self.proton_number
 
     ### cross section from Vogel and Beacom - common inputs
     def cross_section_vb(self, nu_energy_):
+
+        if self.proton_number == 0:
+            self.eval_n_protons()
 
         input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.txt", sep="\t",
                              names=["nu_energy", "cross_section"], header=None)
@@ -281,30 +301,11 @@ class ReactorSpectrum:
         f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
         self.x_sec = f_appo(nu_energy_)
 
-        return self.x_sec
+        return self.x_sec * self.proton_number
 
+    ### Strumia, Vissani, https://arxiv.org/abs/astro-ph/0302055, eq. (25)
     def cross_section(self, nu_energy_, plot_this=False):
-        """
-        Evaluate the IBD cross section.
 
-        For given input energies, it evaluates the IBD cross section.
-
-        Parameters
-        ----------
-        nu_energy_ : numpy array
-            Antineutrino energies.
-        plot_this : bool, optional
-            A flag used to plot the IBD cross section as a function of energy (default is False)
-
-        Returns
-        -------
-        x_sec : numpy array
-            IBD cross section
-
-        References
-        ----------
-        Strumia, Vissani, https://arxiv.org/abs/astro-ph/0302055, eq. (25)
-        """
         alpha = -0.07056
         beta = 0.02018
         gamma = -0.001953
@@ -322,63 +323,46 @@ class ReactorSpectrum:
 
         self.x_sec = const * p_e * positron_energy * energy_exp
 
+        if self.proton_number == 0:
+            self.eval_n_protons()
+
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
             loc1 = plticker.MultipleLocator(base=0.5)
             fig = plt.figure()
             ax = fig.add_subplot(111)
             fig.subplots_adjust(left=0.09, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.x_sec, 'k', linewidth=1.5, label='IBD cross section')
+            ax.plot(nu_energy_, self.x_sec*self.proton_number, 'k', linewidth=1.5, label='IBD cross section')
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\sigma_{\text{IBD}}$ [\si{\centi\meter\squared}]')
+            ax.set_ylabel(r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]')
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
             # plt.savefig('SpectrumPlots/cross_section.pdf', format='pdf', transparent=True)
             # print('\nThe plot has been saved in SpectrumPlots/cross_section.pdf')
 
-        return self.x_sec
+        return self.x_sec * self.proton_number
 
-    def unosc_spectrum(self, nu_energy_, plot_this=False):
-        """
-        Evaluate the unoscillated reactor spectrum.
+    def antinu_spectrum_no_osc(self, nu_energy_, plot_this=False):
 
-        The spectrum is obtained by multiplying the total reactor flux and the IBD cross section.
+        appo = self.reactor_flux_no_osc(nu_energy_)
+        xsec = self.cross_section_sv(nu_energy_)
 
-        Parameters
-        ----------
-        nu_energy_ : numpy array
-            Antineutrino energies.
-        plot_this : bool, optional
-            A flag used to plot the unoscillated reactor spectrum as a function of the neutrino energy
-            (default is False)
-
-        Returns
-        -------
-        norm_spectrum_un : numpy array
-            normalized unoscillated spectrum
-        """
-        appo = self.isotopic_spectrum_vogel(nu_energy_, plot_this=False)
-        self.cross_section(nu_energy_, plot_this=False)
-
-        self.spectrum_un = appo * self.x_sec
-        # integral = simps(self.spectrum_un, nu_energy_)
-        # self.norm_spectrum_un = self.spectrum_un / integral
+        self.spectrum_unosc = appo * xsec
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
             loc1 = plticker.MultipleLocator(base=0.5)
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            fig.subplots_adjust(left=0.12, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.spectrum_un, 'k', linewidth=1.5, label='spectrum')  # not normalized spectrum
-            # ax.plot(nu_energy_, self.norm_spectrum_un, 'k', linewidth=1.5, label='spectrum')  # normalized spectrum
+            # fig.subplots_adjust(left=0.12, right=0.96, top=0.95)
+            ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label='spectrum')  # not normalized spectrum
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
+            ax.set_ylabel(r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]')
             # ax.set_ylim(-0.015, 0.33)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
@@ -386,4 +370,5 @@ class ReactorSpectrum:
             # plt.savefig('SpectrumPlots/unoscillated_spectrum.pdf', format='pdf', transparent=True)
             # print('\nThe plot has been saved in SpectrumPlots/unoscillated_spectrum.pdf')
 
-        return self.norm_spectrum_un
+        return self.spectrum_unosc
+
