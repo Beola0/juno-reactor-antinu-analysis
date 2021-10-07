@@ -12,7 +12,7 @@ import sys
 # - remove part for plotting
 # - add methods to change fission fractions --> DONE
 # - move IBD part to DetectorResponse
-# - add SNF and NonEq contributions
+# - add SNF and NonEq contributions --> DONE
 
 
 class ReactorSpectrum:
@@ -41,6 +41,8 @@ class ReactorSpectrum:
         self.x_sec_np = 0.
         self.spectrum_unosc = 0.
         self.proton_number = 0.
+        self.snf = 0.
+        self.noneq = 0.
 
         self.which_xsec = ''
         self.which_isospectrum = ''
@@ -124,6 +126,26 @@ class ReactorSpectrum:
         for j_ in np.arange(n_):
             appo = appo + params_[j_] * np.power(x_, j_)
         return np.exp(appo)
+
+    def get_snf_ratio(self, nu_energy_):
+
+        input_ = pd.read_csv("Inputs/SNF_FluxRatio.txt", sep="\t",
+                             names=["nu_energy", "snf_ratio"], header=None)
+
+        f_appo = interp1d(input_["nu_energy"], input_["snf_ratio"])
+        self.snf = f_appo(nu_energy_)
+
+        return self.snf
+
+    def get_noneq_ratio(self, nu_energy_):
+
+        input_ = pd.read_csv("Inputs/NonEq_FluxRatio.txt", sep="\t",
+                             names=["nu_energy", "noneq_ratio"], header=None)
+
+        f_appo = interp1d(input_["nu_energy"], input_["noneq_ratio"])
+        self.noneq = f_appo(nu_energy_)
+
+        return self.noneq
 
     def isotopic_spectrum_vogel(self, nu_energy_, plot_this=False):
 
@@ -314,23 +336,38 @@ class ReactorSpectrum:
 
         return self.react_spectrum
 
-    def reactor_flux_no_osc(self, nu_energy_, which_isospectrum='HM', plot_this=False):
+    def reactor_flux_no_osc(self, nu_energy_, which_isospectrum='HM',
+                            bool_snf=False, bool_noneq=False, plot_this=False):
 
         den = 4. * math.pi * np.power(self.baseline*1.e5, 2)
 
         if self.which_isospectrum != which_isospectrum:
             if which_isospectrum == 'V':
-                self.reactor_spectrum(nu_energy_, which_isospectrum)
+                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
             elif which_isospectrum == 'HM':
-                self.reactor_spectrum(nu_energy_, which_isospectrum)
+                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
             elif which_isospectrum == 'DYB':
-                self.reactor_spectrum(nu_energy_, which_isospectrum)
+                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
             else:
                 print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
                       "in reactor_flux_no_osc function, ReactorSpectrum class.")
                 sys.exit()
 
         self.react_flux = self.react_spectrum / den
+
+        if bool_snf:
+            # print("in bool snf")
+            if not np.any(self.snf):
+                # print('evaluating snf')
+                self.get_snf_ratio(nu_energy_)
+            self.react_flux = self.react_flux + self.react_flux * self.snf
+
+        if bool_noneq:
+            # print("in bool noneq")
+            if not np.any(self.noneq):
+                # print('evaluating noneq')
+                self.get_noneq_ratio(nu_energy_)
+            self.react_flux = self.react_flux + self.noneq * self.react_flux
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
@@ -446,15 +483,18 @@ class ReactorSpectrum:
 
         return self.x_sec_np
 
-    def antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='HM', plot_this=False):
+    def antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='HM',
+                               bool_snf=False, bool_noneq=False, plot_this=False):
 
-        if self.which_isospectrum != which_isospectrum:
+        if self.which_isospectrum != which_isospectrum or bool_snf or bool_noneq:
             if which_isospectrum == 'V':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum)
+                self.reactor_flux_no_osc(nu_energy_, which_isospectrum, bool_snf, bool_noneq)
             elif which_isospectrum == 'HM':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum)
+                self.reactor_flux_no_osc(nu_energy_, which_isospectrum,
+                                         bool_snf, bool_noneq)
             elif which_isospectrum == 'DYB':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum)
+                self.reactor_flux_no_osc(nu_energy_, which_isospectrum,
+                                         bool_snf, bool_noneq)
             else:
                 print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
                       "in antinu_spectrum_no_osc function, ReactorSpectrum class.")
