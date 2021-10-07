@@ -10,6 +10,15 @@ int read_inputs ()
 
     TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","IBDXsec_StrumiaVissani");
     TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","IBDXsec_VogelBeacom_DYB");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","SNF_FluxRatio");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","SNF_VisibleSpectrum");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","NonEq_FluxRatio");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","NonEq_VisibleSpectrum");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","positronScintNL");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","positronScintNLpull0");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","positronScintNLpull1");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","positronScintNLpull2");
+    TH1D_to_txt("JUNOInputs2021_05_28_noTF2.root","positronScintNLpull3");
 
     file_inputs->Close();
 

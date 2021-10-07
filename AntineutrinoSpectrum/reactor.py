@@ -12,6 +12,7 @@ import sys
 # - remove part for plotting
 # - add methods to change fission fractions --> DONE
 # - move IBD part to DetectorResponse
+# - add SNF and NonEq contributions
 
 
 class ReactorSpectrum:
