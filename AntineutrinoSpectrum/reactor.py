@@ -127,6 +127,7 @@ class ReactorSpectrum:
             appo = appo + params_[j_] * np.power(x_, j_)
         return np.exp(appo)
 
+    ### from DYB arXiv:1607.05378 - common inputs
     def get_snf_ratio(self, nu_energy_):
 
         input_ = pd.read_csv("Inputs/SNF_FluxRatio.txt", sep="\t",
@@ -137,6 +138,7 @@ class ReactorSpectrum:
 
         return self.snf
 
+    ### from DYB arXiv:1607.05378 - common inputs
     def get_noneq_ratio(self, nu_energy_):
 
         input_ = pd.read_csv("Inputs/NonEq_FluxRatio.txt", sep="\t",
@@ -153,6 +155,7 @@ class ReactorSpectrum:
         print("\nUsing Vogel isotopic spectra")
 
         ### params taken from Vogel, Engel, PRD 39-11 pp 3378, 1989
+        ### exponential of a polynomial of second order
         params_u235 = [0.870, -0.160, -0.091]
         params_pu239 = [0.896, -0.239, -0.0981]
         params_u238 = [0.976, -0.162, -0.0790]
@@ -199,6 +202,7 @@ class ReactorSpectrum:
         print("\nUsing Huber+Mueller isotopic spectra")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for others
+        ### exponential of a polynomial of fifth order
         params_u235 = [4.367, -4.577, 2.100, -5.294e-1, 6.186e-2, -2.777e-3]
         params_pu239 = [4.757, -5.392, 2.563, -6.596e-1, 7.820e-2, -3.536e-3]
         params_u238 = [4.833e-1, 1.927e-1, -1.283e-1, -6.762e-3, 2.233e-3, -1.536e-4]
@@ -488,13 +492,14 @@ class ReactorSpectrum:
 
         if self.which_isospectrum != which_isospectrum or bool_snf or bool_noneq:
             if which_isospectrum == 'V':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum, bool_snf, bool_noneq)
+                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
             elif which_isospectrum == 'HM':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum,
-                                         bool_snf, bool_noneq)
+                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
             elif which_isospectrum == 'DYB':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum,
-                                         bool_snf, bool_noneq)
+                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
             else:
                 print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
                       "in antinu_spectrum_no_osc function, ReactorSpectrum class.")

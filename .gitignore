@@ -11,7 +11,7 @@ SpectrumPlots/
 Test_Stoch_Response/
 __pycache__/
 
-test_main.py
+main.py
 convolution.py
 baseline_main.py
 baseline2.py
