@@ -11,7 +11,7 @@ import sys
 # - create spectrum from inputs, like DYB spectrum --> DONE
 # - remove part for plotting
 # - add methods to change fission fractions --> DONE
-# - move IBD part to DetectorResponse
+# - move IBD part to DetectorResponse (??)
 # - add SNF and NonEq contributions --> DONE
 
 
@@ -378,7 +378,6 @@ class ReactorSpectrum:
             loc1 = plticker.MultipleLocator(base=0.5)
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
             ax.plot(nu_energy_, self.react_flux, 'k', linewidth=1.5, label='Reactor flux')
             ax.legend()
             ax.grid(alpha=0.45)
@@ -473,7 +472,6 @@ class ReactorSpectrum:
             loc1 = plticker.MultipleLocator(base=0.5)
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.09, right=0.96, top=0.95)
             ax.plot(nu_energy_, self.x_sec*self.proton_number, 'k', linewidth=1.5, label='IBD cross section')
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
@@ -522,16 +520,15 @@ class ReactorSpectrum:
             loc1 = plticker.MultipleLocator(base=0.5)
             fig = plt.figure()
             ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.12, right=0.96, top=0.95)
             ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label='spectrum')  # not normalized spectrum
             ax.grid(alpha=0.45)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]')
-            # ax.set_ylim(-0.015, 0.33)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')
+            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
             # plt.savefig('SpectrumPlots/unoscillated_spectrum.pdf', format='pdf', transparent=True)
             # print('\nThe plot has been saved in SpectrumPlots/unoscillated_spectrum.pdf')
 

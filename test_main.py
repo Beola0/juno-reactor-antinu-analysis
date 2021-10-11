@@ -24,7 +24,7 @@ inputs_json = json.load(f)
 # E = np.arange(1., 12.01, 0.01)  # in MeV
 E = np.arange(1.925, 8.65, 0.01)  # in MeV
 
-'''
+
 react = ReactorSpectrum(inputs_json)
 flux_v = react.isotopic_spectrum_vogel(E, plot_this=False)
 flux_hm = react.isotopic_spectrum_hubermueller(E, plot_this=False)
@@ -34,24 +34,47 @@ reactor_spectrum_v = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isos
 reactor_spectrum_hm = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='HM', plot_this=False)
 reactor_spectrum_dyb = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', plot_this=False)
 
-nominal = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', plot_this=False)
-nominal_snf = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', bool_snf=True, plot_this=False)
-nominal_noneq = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', bool_noneq=True, plot_this=False)
-nominal_snf_noneq = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', bool_snf=True, bool_noneq=True, plot_this=False)
+# nominal = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', plot_this=False)
+# nominal_snf = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', bool_snf=True, plot_this=False)
+# nominal_noneq = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', bool_noneq=True, plot_this=False)
+# nominal_snf_noneq = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', bool_snf=True, bool_noneq=True, plot_this=False)
+# nominal_hm = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='HM', plot_this=False)
 
 # appo = react.reactor_spectrum(E, plot_this=False)
 # appo1 = react.reactor_flux_no_osc(E, plot_this=False)
 
-xsec_sv = react.cross_section_sv(E)
-xsec_vb = react.cross_section_vb(E)
-xsec = react.cross_section(E)
+# xsec_sv = react.cross_section_sv(E)
+# xsec_vb = react.cross_section_vb(E)
+# xsec = react.cross_section(E)
+
+# params_u235 = [4.367, -4.577, 2.100, -5.294e-1, 6.186e-2, -2.777e-3]
+# params_pu239 = [4.757, -5.392, 2.563, -6.596e-1, 7.820e-2, -3.536e-3]
+# params_u238 = [4.833e-1, 1.927e-1, -1.283e-1, -6.762e-3, 2.233e-3, -1.536e-4]
+# params_pu241 = [2.990, -2.882, 1.278, -3.343e-1, 3.905e-2, -1.754e-3]
+#
+# u235 = react.isotopic_spectrum_exp(E, params_u235)
+# pu239 = react.isotopic_spectrum_exp(E, params_pu239)
+# u238 = react.isotopic_spectrum_exp(E, params_u238)
+# pu241 = react.isotopic_spectrum_exp(E, params_pu241)
+#
+# plt.figure()
+# plt.plot(E, flux_hm, 'm', linewidth=1.5, label='total')
+# plt.plot(E, react.fiss_frac_235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
+# plt.plot(E, react.fiss_frac_239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
+# plt.plot(E, react.fiss_frac_238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
+# plt.plot(E, react.fiss_frac_241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
+# plt.plot(E, xsec_sv*2.e8, 'c', linewidth=1.5, label=r'$\sigma_{\text{IBD}}$')
+# plt.plot(E, nominal_hm*2500., 'k', linewidth=1.5, label=r'$\bar{\nu}$ spectrum')
+# plt.grid()
+# # plt.legend()
+
 
 plt.figure()
 plt.plot(E, flux_v, 'g-.', linewidth=1., label='Vogel')
 plt.plot(E, flux_hm, 'r--', linewidth=1., label='H + M')
 plt.plot(E, flux_dyb, 'k', linewidth=1., label='DYB')
 plt.xlabel(r'nu energy [MeV]')
-plt.ylabel(r'isotopic spectrum [\#nu/fission/MeV]')
+plt.ylabel(r'isotopic spectrum [\#$\nu$/fission/MeV]')
 plt.legend()
 plt.grid()
 
@@ -60,30 +83,31 @@ plt.plot(E, reactor_spectrum_v, 'g-.', linewidth=1., label='Vogel')
 plt.plot(E, reactor_spectrum_hm, 'r--', linewidth=1., label='H + M')
 plt.plot(E, reactor_spectrum_dyb, 'k', linewidth=1., label='DYB')
 plt.xlabel(r'nu energy [MeV]')
-plt.ylabel(r'antinu spectrum [\#nu/s/MeV]')
-plt.legend()
-plt.grid()
-
-plt.figure()
-plt.plot(E, nominal, 'k', linewidth=1., label='nominal')
-plt.plot(E, nominal_snf, 'b:', linewidth=1., label='SNF')
-plt.plot(E, nominal_noneq, 'r-.', linewidth=1., label='NonEq')
-plt.plot(E, nominal_snf_noneq, 'g--', linewidth=1., label='SNF+NonEq')
-plt.xlabel(r'nu energy [MeV]')
 plt.ylabel(r'antinu spectrum [\#$\nu$/s/MeV]')
 plt.legend()
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
 plt.grid()
 
-plt.figure()
+# plt.figure()
 # plt.plot(E, nominal, 'k', linewidth=1., label='nominal')
-plt.plot(E, (nominal_snf-nominal)/nominal*100., 'b:', linewidth=1., label='SNF')
-plt.plot(E, (nominal_noneq-nominal)/nominal*100., 'r-.', linewidth=1., label='NonEq')
-plt.plot(E, (nominal_snf_noneq-nominal)/nominal*100., 'g--', linewidth=1., label='SNF+NonEq')
-plt.xlabel(r'nu energy [MeV]')
-plt.ylabel(r'(corr - nom)/nom [\%]')
-plt.legend()
-plt.grid()
-'''
+# plt.plot(E, nominal_snf, 'b:', linewidth=1., label='SNF')
+# plt.plot(E, nominal_noneq, 'r-.', linewidth=1., label='NonEq')
+# plt.plot(E, nominal_snf_noneq, 'g--', linewidth=1., label='SNF+NonEq')
+# plt.xlabel(r'nu energy [MeV]')
+# plt.ylabel(r'antinu spectrum [\#$\nu$/s/MeV]')
+# plt.legend()
+# plt.grid()
+# 
+# plt.figure()
+# # plt.plot(E, nominal, 'k', linewidth=1., label='nominal')
+# plt.plot(E, (nominal_snf-nominal)/nominal*100., 'b:', linewidth=1., label='SNF')
+# plt.plot(E, (nominal_noneq-nominal)/nominal*100., 'r-.', linewidth=1., label='NonEq')
+# plt.plot(E, (nominal_snf_noneq-nominal)/nominal*100., 'g--', linewidth=1., label='SNF+NonEq')
+# plt.xlabel(r'nu energy [MeV]')
+# plt.ylabel(r'(corr - nom)/nom [\%]')
+# plt.legend()
+# plt.grid()
+
 
 '''
 ### OSCILLATION PROBABILITY 
@@ -120,11 +144,11 @@ plt.legend()
 spectrum = OscillatedSpectrum(inputs_json)
 # spectrum_N, spectrum_I = spectrum.osc_spectrum_old(E, 0, plot_this=True, normalize=False, plot_un=True)
 s_N, s_I = spectrum.osc_spectrum(E, plot_this=True, plot_un=True)
-s_N_m, s_I_m = spectrum.osc_spectrum(E, plot_this=True, plot_un=True, matter=True)
+# s_N_m, s_I_m = spectrum.osc_spectrum(E, plot_this=True, plot_un=True, matter=True)
 
-# sres_N = spectrum.resol_spectrum_N(E-0.78, plot_this=True, normalize=True)
-# sres_N, sres_I = spectrum.resol_spectrum(E-0.78, plot_this=True, normalize=True)
-# sres_N_m, sres_I_m = spectrum.resol_spectrum(E-0.78, matter=True, plot_this=True, normalize=True)
+# sres_N = spectrum.resol_spectrum_N(E-0.78, plot_this=True)
+sres_N, sres_I = spectrum.resol_spectrum(E-0.78, plot_this=True)
+sres_N_m, sres_I_m = spectrum.resol_spectrum(E-0.78, matter=True, plot_this=True)
 
 
 elapsed_time = time.perf_counter_ns() - time_start
