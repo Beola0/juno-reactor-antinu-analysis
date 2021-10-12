@@ -139,7 +139,7 @@ plt.grid()
 plt.legend()
 '''
 
-
+print('\nOSCILLATED SPECTRUM\n')
 ### OSCILLATED SPECTRUM
 spectrum = OscillatedSpectrum(inputs_json)
 # spectrum_N, spectrum_I = spectrum.osc_spectrum_old(E, 0, plot_this=True, normalize=False, plot_un=True)
@@ -150,6 +150,28 @@ s_N, s_I = spectrum.osc_spectrum(E, plot_this=True, plot_un=True)
 sres_N, sres_I = spectrum.resol_spectrum(E-0.78, plot_this=True)
 sres_N_m, sres_I_m = spectrum.resol_spectrum(E-0.78, matter=True, plot_this=True)
 
+s_N_v = spectrum.resol_spectrum_N(E-0.78, plot_this=False, which_isospectrum='V', matter=True)
+s_N_hm = spectrum.resol_spectrum_N(E-0.78, plot_this=False, which_isospectrum='HM', matter=True)
+s_N_dyb = spectrum.resol_spectrum_N(E-0.78, plot_this=False, which_isospectrum='DYB', matter=True)
+
+plt.figure(figsize=[8, 5.5])
+plt.plot(E-0.78, sres_N, "b-", linewidth=1, label='NO - vacuum')
+plt.plot(E-0.78, sres_N_m, "r--", linewidth=1, label='NO - matter')
+plt.xlabel(r'$E_{\text{vis}}$ [\si{\MeV}]')
+plt.ylabel(r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]')
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+plt.grid()
+plt.legend()
+
+plt.figure(figsize=[8, 5.5])
+plt.plot(E-0.78, s_N_dyb, "k", linewidth=1.2, label='NO - DYB')
+plt.plot(E-0.78, s_N_hm, "r--", linewidth=1.2, label='NO - HM')
+plt.plot(E-0.78, s_N_v, "g-.", linewidth=1.2, label='NO - V')
+plt.xlabel(r'$E_{\text{vis}}$ [\si{\MeV}]')
+plt.ylabel(r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]')
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+plt.grid()
+plt.legend()
 
 elapsed_time = time.perf_counter_ns() - time_start
 elapsed_time = elapsed_time * 10 ** (-9)  # in seconds

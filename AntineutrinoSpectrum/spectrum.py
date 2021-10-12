@@ -41,17 +41,20 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.baselines = baselines
         self.powers = powers
 
-    def osc_spectrum_N(self, nu_energy_, matter=False, plot_this=False, plot_un=False):
+    def osc_spectrum_N(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                       bool_snf=True, bool_noneq=True, plot_this=False, plot_un=False):
 
-        ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='DYB',
-                                               bool_snf=True, bool_noneq=True)
+        ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                               which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                                               bool_snf=bool_snf, bool_noneq=bool_noneq)
+
         if matter:
             ylabel_ = r'$S_{\nu}$ [N$_{\nu}$/\si{s}/\si{\MeV}] (in matter)'
-            print("evaluating oscillation probability in matter - N")
+            print("\nevaluating oscillation probability in matter - N")
             prob = OscillationProbability.eval_matter_prob_N_energy(self, nu_energy_)
         else:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
-            print("evaluating oscillation probability in vacuum - N")
+            print("\nevaluating oscillation probability in vacuum - N")
             prob = OscillationProbability.eval_vacuum_prob_N_energy(self, nu_energy_)
 
         self.osc_spect_N = self.spectrum_unosc * prob
@@ -63,7 +66,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlim(1.5, 10.5)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_ylabel(ylabel_)
@@ -80,17 +83,19 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
         return self.osc_spect_N
 
-    def osc_spectrum_I(self, nu_energy_, matter=False, plot_this=False, plot_un=False):
+    def osc_spectrum_I(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                       bool_snf=True, bool_noneq=True, plot_this=False, plot_un=False):
 
-        ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='DYB',
-                                               bool_snf=True, bool_noneq=True)
+        ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                               which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                                               bool_snf=bool_snf, bool_noneq=bool_noneq)
         if matter:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}] (in matter)'
-            print("evaluating oscillation probability in matter - I")
+            print("\nevaluating oscillation probability in matter - I")
             prob = OscillationProbability.eval_matter_prob_I_energy(self, nu_energy_)
         else:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
-            print("evaluating oscillation probability in vacuum - I")
+            print("\nevaluating oscillation probability in vacuum - I")
             prob = OscillationProbability.eval_vacuum_prob_I_energy(self, nu_energy_)
 
         self.osc_spect_I = self.spectrum_unosc * prob
@@ -102,7 +107,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlim(1.5, 10.5)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_ylabel(ylabel_)
@@ -119,10 +124,13 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
         return self.osc_spect_I
 
-    def osc_spectrum(self, nu_energy_, matter=False, plot_this=False, plot_un=False):
+    def osc_spectrum(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                     bool_snf=True, bool_noneq=True, plot_this=False, plot_un=False):
 
-        self.osc_spectrum_N(nu_energy_, matter=matter)
-        self.osc_spectrum_I(nu_energy_, matter=matter)
+        self.osc_spectrum_N(nu_energy_, matter=matter, which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                            bool_snf=bool_snf, bool_noneq=bool_noneq)
+        self.osc_spectrum_I(nu_energy_, matter=matter, which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                            bool_snf=bool_snf, bool_noneq=bool_noneq)
 
         if matter:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}] (in matter)'
@@ -136,7 +144,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlim(1.5, 10.5)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_ylabel(ylabel_)
@@ -158,13 +166,16 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
     ### for further reference: https://arxiv.org/abs/1210.8141, eq. (2.12) and (2.14)
     ### see also the implementation of the numerical convolution in the class Convolution
 
-    def resol_spectrum_N(self, visible_energy_, matter=False, plot_this=False):
+    def resol_spectrum_N(self, visible_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                         bool_snf=True, bool_noneq=True, plot_this=False):
 
         # nu_energy = np.arange(1.806, 30.01, 0.01)
         nu_energy = np.arange(1.925, 8.65, 0.01)
         dep_energy = nu_energy - 0.78
 
-        self.osc_spectrum_N(nu_energy, matter=matter)
+        self.osc_spectrum_N(nu_energy, matter=matter,
+                            which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                            bool_snf=bool_snf, bool_noneq=bool_noneq)
 
         print('adding experimental resolution via numerical convolution, it might take some time.')
         self.resol_N = DetectorResponse.gaussian_smearing_abc(self, self.osc_spect_N, dep_energy, visible_energy_)
@@ -181,7 +192,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
             ax.set_xlim(0.5, 9.5)
             ax.set_ylabel(ylabel_)
@@ -196,12 +207,15 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
         return self.resol_N
 
-    def resol_spectrum_I(self, visible_energy_, matter=False, plot_this=False):
+    def resol_spectrum_I(self, visible_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                         bool_snf=True, bool_noneq=True, plot_this=False):
 
         nu_energy = np.arange(1.925, 8.65, 0.01)
         dep_energy = nu_energy - 0.78
 
-        self.osc_spectrum_I(nu_energy, matter=matter)
+        self.osc_spectrum_I(nu_energy, matter=matter,
+                            which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                            bool_snf=bool_snf, bool_noneq=bool_noneq)
 
         print('adding experimental resolution via numerical convolution, it might take some time.')
         self.resol_I = DetectorResponse.gaussian_smearing_abc(self, self.osc_spect_I, dep_energy, visible_energy_)
@@ -213,12 +227,12 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
         if plot_this:
 
-            loc = plticker.MultipleLocator(base=2.0)
+            loc = plticker.MultipleLocator(base=1.0)
             loc1 = plticker.MultipleLocator(base=0.5)
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
             ax.set_xlim(0.5, 9.5)
             ax.set_ylabel(ylabel_)
@@ -233,10 +247,15 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
         return self.resol_I
 
-    def resol_spectrum(self, visible_energy_, matter=False, plot_this=False):
+    def resol_spectrum(self, visible_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                       bool_snf=True, bool_noneq=True, plot_this=False):
 
-        self.resol_spectrum_N(visible_energy_, matter=matter)
-        self.resol_spectrum_I(visible_energy_, matter=matter)
+        self.resol_spectrum_N(visible_energy_, matter=matter,
+                              which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                              bool_snf=bool_snf, bool_noneq=bool_noneq)
+        self.resol_spectrum_I(visible_energy_, matter=matter,
+                              which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                              bool_snf=bool_snf, bool_noneq=bool_noneq)
 
         if matter:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}] (in matter)'
@@ -245,12 +264,12 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
         if plot_this:
 
-            loc = plticker.MultipleLocator(base=2.0)
+            loc = plticker.MultipleLocator(base=1.0)
             loc1 = plticker.MultipleLocator(base=0.5)
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
             ax.set_xlim(0.5, 9.5)
             ax.set_ylabel(ylabel_)
@@ -307,7 +326,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ax_b.xaxis.set_minor_locator(loc1)
             ax_b.tick_params('both', direction='out', which='both')
             ax_b.legend()
-            ax_b.grid(alpha=0.45)
+            ax_b.grid(alpha=0.65)
             # fig_b.savefig('SpectrumPlots/baselines.pdf', format='pdf', transparent=True)
             # print('\nThe plot has been saved in SpectrumPlots/baselines.pdf')
 
@@ -336,7 +355,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                 ax.set_ylim(-0.005, 0.305)
             # ax.set_title(r'Antineutrino spectra with true baseline distribution')
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             # fig.savefig('SpectrumPlots/sum.pdf', format='pdf', transparent=True)
             # print('\nThe plot has been saved in SpectrumPlots/sum.pdf')
 
@@ -382,7 +401,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ax_b.xaxis.set_minor_locator(loc1)
             ax_b.tick_params('both', direction='out', which='both')
             ax_b.legend()
-            ax_b.grid(alpha=0.45)
+            ax_b.grid(alpha=0.65)
             # fig_b.savefig('SpectrumPlots/resol_baselines.pdf', format='pdf', transparent=True)
             # print('\nThe plot has been saved in SpectrumPlots/resol_baselines.pdf')
 
@@ -409,7 +428,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             # ax.set_title(
             #     r'Antineutrino spectra with true baseline distribution' + '\nwith energy resolution (\SI{3}{\percent} at \SI{1}{\MeV})')
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.xaxis.set_major_locator(loc)
             ax.xaxis.set_minor_locator(loc1)
             ax.tick_params('both', direction='out', which='both')

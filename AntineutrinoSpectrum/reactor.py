@@ -13,6 +13,7 @@ import sys
 # - add methods to change fission fractions --> DONE
 # - move IBD part to DetectorResponse (??)
 # - add SNF and NonEq contributions --> DONE
+# - add nuisances: for matter density, SNF and NonEq
 
 
 class ReactorSpectrum:
@@ -184,7 +185,7 @@ class ReactorSpectrum:
             ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
             ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)')
@@ -231,7 +232,7 @@ class ReactorSpectrum:
             ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
             ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)')
@@ -246,7 +247,7 @@ class ReactorSpectrum:
     def isotopic_spectrum_DYB(self, nu_energy_, plot_this=False):
 
         self.which_isospectrum = 'DYB'
-        print("\nUsing DYB isotopic spectra")
+        print("\nUsing DYB isotopic spectra (default)")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for 241Pu
         params_u238 = [4.833e-1, 1.927e-1, -1.283e-1, -6.762e-3, 2.233e-3, -1.536e-4]
@@ -287,7 +288,7 @@ class ReactorSpectrum:
             # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
             ax.plot(nu_energy_, self.iso_spectrum, 'k', linewidth=1.5, label='Total')
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)')
@@ -328,7 +329,7 @@ class ReactorSpectrum:
             # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
             ax.plot(nu_energy_, self.react_spectrum, 'k', linewidth=1.5, label='Reactor spectrum')
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]')
@@ -360,16 +361,16 @@ class ReactorSpectrum:
         self.react_flux = self.react_spectrum / den
 
         if bool_snf:
-            # print("in bool snf")
+            print("\nAdding SNF contribution")
             if not np.any(self.snf):
-                # print('evaluating snf')
+                print('Reading SNF from file')
                 self.get_snf_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.react_flux * self.snf
 
         if bool_noneq:
-            # print("in bool noneq")
+            print("\nAdding NonEq contribution")
             if not np.any(self.noneq):
-                # print('evaluating noneq')
+                print('Reading NonEq from file')
                 self.get_noneq_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.noneq * self.react_flux
 
@@ -380,7 +381,7 @@ class ReactorSpectrum:
             ax = fig.add_subplot(111)
             ax.plot(nu_energy_, self.react_flux, 'k', linewidth=1.5, label='Reactor flux')
             ax.legend()
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]')
@@ -426,7 +427,7 @@ class ReactorSpectrum:
     def cross_section_vb(self, nu_energy_):
 
         self.which_xsec = 'VB'
-        print("\nUsing Vogel Beacom cross section from common inputs (default)")
+        print("\nUsing Vogel Beacom cross section from common inputs")
 
         if self.proton_number == 0.:
             self.eval_n_protons()
@@ -473,7 +474,7 @@ class ReactorSpectrum:
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.plot(nu_energy_, self.x_sec*self.proton_number, 'k', linewidth=1.5, label='IBD cross section')
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]')
@@ -485,6 +486,7 @@ class ReactorSpectrum:
 
         return self.x_sec_np
 
+    # TODO: add self.bool_snf and self.bool_noneq
     def antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='HM',
                                bool_snf=False, bool_noneq=False, plot_this=False):
 
@@ -521,7 +523,7 @@ class ReactorSpectrum:
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label='spectrum')  # not normalized spectrum
-            ax.grid(alpha=0.45)
+            ax.grid(alpha=0.65)
             ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
             ax.set_xlim(1.5, 10.5)
             ax.set_ylabel(r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]')
