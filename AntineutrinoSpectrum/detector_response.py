@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from scipy import integrate
+import pandas as pd
+from scipy.interpolate import interp1d
 
 # TODO
 # - add non linearity
@@ -22,6 +24,12 @@ class DetectorResponse:
         self.sigma_b = inputs_json_["energy_resolution"]["sigma_b"]
         self.c = inputs_json_["energy_resolution"]["c"]
         self.sigma_c = inputs_json_["energy_resolution"]["sigma_c"]
+
+        self.nl_nominal = 0.
+        self.nl_pull0 = 0.
+        self.nl_pull1 = 0.
+        self.nl_pull2 = 0.
+        self.nl_pull3 = 0.
 
     @staticmethod
     def gaussian(x_, sigma_):
@@ -151,3 +159,30 @@ class DetectorResponse:
 
         return self.smeared_spectrum
 
+    def get_nl_curves(self, dep_energy_):
+
+        input_nom = pd.read_csv("Inputs/positronScintNL.txt", sep="\t",
+                                names=["dep_energy", "nl_nominal"], header=None)
+        input_pull0 = pd.read_csv("Inputs/positronScintNLpull0.txt", sep="\t",
+                                  names=["dep_energy", "nl_pull0"], header=None)
+        input_pull1 = pd.read_csv("Inputs/positronScintNLpull1.txt", sep="\t",
+                                  names=["dep_energy", "nl_pull1"], header=None)
+        input_pull2 = pd.read_csv("Inputs/positronScintNLpull2.txt", sep="\t",
+                                  names=["dep_energy", "nl_pull2"], header=None)
+        input_pull3 = pd.read_csv("Inputs/positronScintNLpull3.txt", sep="\t",
+                                  names=["dep_energy", "nl_pull3"], header=None)
+
+        f_appo = interp1d(input_nom["dep_energy"], input_nom["nl_nominal"])
+        self.nl_nominal = f_appo(dep_energy_)
+        f_appo = interp1d(input_pull0["dep_energy"], input_pull0["nl_pull0"])
+        self.nl_pull0 = f_appo(dep_energy_)
+        f_appo = interp1d(input_pull1["dep_energy"], input_pull1["nl_pull1"])
+        self.nl_pull1 = f_appo(dep_energy_)
+        f_appo = interp1d(input_pull2["dep_energy"], input_pull2["nl_pull2"])
+        self.nl_pull2 = f_appo(dep_energy_)
+        f_appo = interp1d(input_pull3["dep_energy"], input_pull3["nl_pull3"])
+        self.nl_pull3 = f_appo(dep_energy_)
+
+        return self.nl_nominal, self.nl_pull0, self.nl_pull1, self.nl_pull2, self.nl_pull3
+
+    # def non_linearity(self, nu_energy_):
