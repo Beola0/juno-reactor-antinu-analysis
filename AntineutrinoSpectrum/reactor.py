@@ -43,7 +43,9 @@ class ReactorSpectrum:
         self.spectrum_unosc = 0.
         self.proton_number = 0.
         self.snf = 0.
+        self.bool_snf = False
         self.noneq = 0.
+        self.bool_noneq = False
 
         self.which_xsec = ''
         self.which_isospectrum = ''
@@ -361,18 +363,24 @@ class ReactorSpectrum:
         self.react_flux = self.react_spectrum / den
 
         if bool_snf:
+            self.bool_snf = True
             print("\nAdding SNF contribution")
             if not np.any(self.snf):
                 print('Reading SNF from file')
                 self.get_snf_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.react_flux * self.snf
+        else:
+            self.bool_snf = False
 
         if bool_noneq:
+            self.bool_noneq = True
             print("\nAdding NonEq contribution")
             if not np.any(self.noneq):
                 print('Reading NonEq from file')
                 self.get_noneq_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.noneq * self.react_flux
+        else:
+            self.bool_noneq = False
 
         if plot_this:
             loc = plticker.MultipleLocator(base=2.0)
@@ -486,11 +494,10 @@ class ReactorSpectrum:
 
         return self.x_sec_np
 
-    # TODO: add self.bool_snf and self.bool_noneq
     def antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='HM',
                                bool_snf=False, bool_noneq=False, plot_this=False):
 
-        if self.which_isospectrum != which_isospectrum or bool_snf or bool_noneq:
+        if self.which_isospectrum != which_isospectrum or self.bool_snf != bool_snf or self.bool_noneq != bool_noneq:
             if which_isospectrum == 'V':
                 self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
                                          bool_snf=bool_snf, bool_noneq=bool_noneq)
@@ -535,4 +542,3 @@ class ReactorSpectrum:
             # print('\nThe plot has been saved in SpectrumPlots/unoscillated_spectrum.pdf')
 
         return self.spectrum_unosc
-
