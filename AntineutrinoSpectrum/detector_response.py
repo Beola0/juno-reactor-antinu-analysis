@@ -30,6 +30,10 @@ class DetectorResponse:
         self.nl_pull1 = 0.
         self.nl_pull2 = 0.
         self.nl_pull3 = 0.
+        self.alpha_pull0 = 0.
+        self.alpha_pull1 = 0.
+        self.alpha_pull2 = 0.
+        self.alpha_pull3 = 0.
 
     @staticmethod
     def gaussian(x_, sigma_):
@@ -60,6 +64,15 @@ class DetectorResponse:
 
     def get_resol_params_sigmas(self):
         return self.sigma_a, self.sigma_b, self.sigma_c
+
+    def set_alphas_pull(self, a0_, a1_, a2_, a3_):
+        self.alpha_pull0 = a0_
+        self.alpha_pull1 = a1_
+        self.alpha_pull2 = a2_
+        self.alpha_pull3 = a3_
+
+    def get_alphas_pull(self):
+        return self.alpha_pull0, self.alpha_pull1, self.alpha_pull2, self.alpha_pull3
 
     ### convolution of a function f with a gaussian in a given range E
     ### given both initial and final energies
@@ -185,4 +198,14 @@ class DetectorResponse:
 
         return self.nl_nominal, self.nl_pull0, self.nl_pull1, self.nl_pull2, self.nl_pull3
 
-    # def non_linearity(self, nu_energy_):
+    def eval_non_linearity(self, dep_energy_):
+
+        if not np.any(self.nl_nominal):
+            self.get_nl_curves(dep_energy_)
+
+        appo0 = self.alpha_pull0 * (self.nl_pull0 - self.nl_nominal)
+        appo1 = self.alpha_pull1 * (self.nl_pull1 - self.nl_nominal)
+        appo2 = self.alpha_pull2 * (self.nl_pull2 - self.nl_nominal)
+        appo3 = self.alpha_pull3 * (self.nl_pull3 - self.nl_nominal)
+
+        return self.nl_nominal + appo0 + appo1 + appo2 + appo3
