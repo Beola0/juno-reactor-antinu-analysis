@@ -6,17 +6,19 @@ import math
 # TODO:
 # - add methods to change osc params --> DONE
 # - divide NO and IO into separate methods + third method for both --> DONE
-# - new method: change baseline --> self.baselines = [52.5]
-# - remove part for plotting
+# - new method: change baseline --> from json file
+# - remove part for plotting --> improved, DONE
 # - add methods for osc probability in matter --> DONE
 # - initialize with .json file --> DONE
+# - put together E and L/E and use a flag (or energy='', if not do E) --> DONE
+# - add nuisances: for matter density
 
 
 ### survival probability
 class OscillationProbability:
 
     def __init__(self, inputs_json_):
-        self.baseline = 52.5  # [km], fixed for now -> can be modified, in class Spectrum
+        self.baseline = inputs_json_["baseline"]  # [km]
 
         self.sin2_12 = inputs_json_["oscillationParams"]["sin2_12"]
         self.deltam_21 = inputs_json_["oscillationParams"]["deltam_21"]  # [eV^2]
@@ -93,24 +95,6 @@ class OscillationProbability:
 
     @staticmethod
     def sin2(x_, dm2_):
-        """
-        Compute the sine squared with given parameters.
-
-        Compute the sin squared of 1.27 * `dm2` * `x`, where `x` is the independent variable. This method is used to
-        evaluate the oscillatory term in the oscillation probability.
-
-        Parameters
-        ----------
-        x_ : numpy array
-            Input independent variable, corresponding to the ratio L/E [m/MeV].
-        dm2_ : float
-            Mass squared difference.
-
-        Returns
-        -------
-        numpy array
-            The sine squared of 1.27 * `dm2` * `x`.
-        """
         appo = 1.267 * dm2_ * x_  # x in [m/MeV]
         return np.power(np.sin(appo), 2)
 
@@ -125,9 +109,13 @@ class OscillationProbability:
         return np.cos(appo)
 
     # PRD 78, 2008, https: // arxiv.org / abs / 0807.3203, eq.(4)
-    def eval_vacuum_prob_N(self, plot_this=False):
+    # variable x is L/E
+    def eval_vacuum_prob_N(self, nu_energy=None, plot_this=False):
 
-        x = np.arange(0.01, 500000, 1.)  # [m/MeV]
+        if nu_energy is not None:
+            x = self.baseline * 1000 / nu_energy  # [m/MeV]
+        else:
+            x = np.arange(0.01, 500000, 1.)  # [m/MeV]
 
         aa = math.pow(1 - self.sin2_13_N, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
         bb = (1 - self.sin2_12) * 4 * self.sin2_13_N * (1 - self.sin2_13_N)
@@ -138,25 +126,23 @@ class OscillationProbability:
                              - cc * self.sin2(x, self.deltam_3l_N - self.deltam_21)
 
         if plot_this:
-
-            fig = plt.figure(figsize=[8, 5.5])
-            ax = fig.add_subplot(111)
-            fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.grid(alpha=0.45)
-            ax.set_xlim(left=0.04, right=35)
-            ax.set_ylim(0.08, 1.02)
-            ax.set_xlabel(r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]')
-            ax.set_ylabel(r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax.semilogx(x / 1000, self.vacuum_prob_N, 'b', linewidth=1, label=r'NO')
-            ax.legend(loc='lower left')
-            # fig.savefig('SpectrumPlots/prob_N_LE.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_LE.pdf')
+            ylabel = r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
+            if nu_energy is not None:
+                plot_function(x_=[nu_energy], y_=[self.vacuum_prob_N], label_=[r'NO'], colours=['b'],
+                              ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
+            else:
+                xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
+                plot_function(x_=[x/1000.], y_=[self.vacuum_prob_N], label_=[r'NO'], colours=['b'],
+                              ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.vacuum_prob_N
 
-    def eval_vacuum_prob_I(self, plot_this=False):
+    def eval_vacuum_prob_I(self, nu_energy=None, plot_this=False):
 
-        x = np.arange(0.01, 500000, 1.)  # [m/MeV]
+        if nu_energy is not None:
+            x = self.baseline * 1000 / nu_energy  # [m/MeV]
+        else:
+            x = np.arange(0.01, 500000, 1.)  # [m/MeV]
 
         aa = math.pow(1 - self.sin2_13_I, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
         bb = (1 - self.sin2_12) * 4 * self.sin2_13_I * (1 - self.sin2_13_I)
@@ -167,150 +153,53 @@ class OscillationProbability:
                              - cc * self.sin2(x, self.deltam_3l_I)
 
         if plot_this:
-
-            fig = plt.figure(figsize=[8, 5.5])
-            ax = fig.add_subplot(111)
-            fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.grid(alpha=0.45)
-            ax.set_xlim(left=0.04, right=35)
-            ax.set_ylim(0.08, 1.02)
-            ax.set_xlabel(r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]')
-            ax.set_ylabel(r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax.semilogx(x / 1000, self.vacuum_prob_I, 'r', linewidth=1, label=r'IO')
-            ax.legend(loc='lower left')
-            # fig.savefig('SpectrumPlots/prob_I_LE.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_I_LE.pdf')
+            ylabel = r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
+            if nu_energy is not None:
+                plot_function(x_=[nu_energy], y_=[self.vacuum_prob_I], label_=[r'IO'], colours=['r'],
+                              ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
+            else:
+                xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
+                plot_function(x_=[x / 1000.], y_=[self.vacuum_prob_I], label_=[r'IO'], colours=['r'],
+                              ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.vacuum_prob_I
 
-    def eval_vacuum_prob(self, plot_this=False):
+    def eval_vacuum_prob(self, nu_energy=None, plot_this=False):
 
-        self.eval_vacuum_prob_N()
-        self.eval_vacuum_prob_I()
+        self.eval_vacuum_prob_N(nu_energy=nu_energy)
+        self.eval_vacuum_prob_I(nu_energy=nu_energy)
 
         if plot_this:
-
-            fig = plt.figure(figsize=[8, 5.5])
-            ax = fig.add_subplot(111)
-            fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.grid(alpha=0.45)
-            ax.set_xlim(left=0.04, right=35)
-            ax.set_ylim(0.08, 1.02)
-            ax.set_xlabel(r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]')
-            ax.set_ylabel(r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            x = np.arange(0.01, 500000, 1.)  # [m/MeV]
-            ax.semilogx(x / 1000, self.vacuum_prob_N, 'b', linewidth=1, label=r'NO')
-            ax.semilogx(x / 1000, self.vacuum_prob_I, 'r--', linewidth=1, label=r'IO')
-            ax.legend(loc='lower left')
-            # fig.savefig('SpectrumPlots/prob_LE.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_LE.pdf')
+            ylabel = r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
+            if nu_energy is not None:
+                plot_function(x_=[nu_energy, nu_energy],
+                              y_=[self.vacuum_prob_N, self.vacuum_prob_I],
+                              label_=[r'NO', r'IO'],
+                              colours=['b', 'r--'],
+                              ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
+            else:
+                x = np.arange(0.01, 500000, 1.)  # [m/MeV]
+                xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
+                plot_function(x_=[x / 1000., x / 1000.],
+                              y_=[self.vacuum_prob_N, self.vacuum_prob_I],
+                              label_=[r'NO', r'IO'],
+                              colours=['b', 'r--'],
+                              ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.vacuum_prob_N, self.vacuum_prob_I
-
-    def eval_vacuum_prob_N_energy(self, nu_energy, plot_this=False):
-
-        x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
-
-        aa = np.power(1. - self.sin2_13_N, 2) * 4. * self.sin2_12 * (1. - self.sin2_12)
-        bb = (1. - self.sin2_12) * 4. * self.sin2_13_N * (1. - self.sin2_13_N)
-        cc = self.sin2_12 * 4. * self.sin2_13_N * (1. - self.sin2_13_N)
-
-        self.vacuum_prob_N_E = 1. - aa * self.sin2(x_energy, self.deltam_21) \
-                               - bb * self.sin2(x_energy, self.deltam_3l_N) \
-                               - cc * self.sin2(x_energy, self.deltam_3l_N - self.deltam_21)
-
-        if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
-            ax1.set_xlim(1.5, 10.5)
-            ax1.set_ylabel(r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.xaxis.set_major_locator(loc)
-            ax1.xaxis.set_minor_locator(loc1)
-            ax1.tick_params('both', direction='out', which='both')
-            ax1.plot(nu_energy, self.vacuum_prob_N_E, 'b', linewidth=1, label=r'NO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
-
-        return self.vacuum_prob_N_E
-
-    def eval_vacuum_prob_I_energy(self, nu_energy, plot_this=False):
-
-        x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
-
-        aa = np.power(1. - self.sin2_13_I, 2) * 4. * self.sin2_12 * (1. - self.sin2_12)
-        bb = (1. - self.sin2_12) * 4. * self.sin2_13_I * (1. - self.sin2_13_I)
-        cc = self.sin2_12 * 4. * self.sin2_13_I * (1. - self.sin2_13_I)
-
-        self.vacuum_prob_I_E = 1. - aa * self.sin2(x_energy, self.deltam_21) \
-                               - bb * self.sin2(x_energy, self.deltam_3l_I + self.deltam_21) \
-                               - cc * self.sin2(x_energy, self.deltam_3l_I)
-
-        if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
-            ax1.set_xlim(1.5, 10.5)
-            ax1.set_ylabel(r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.xaxis.set_major_locator(loc)
-            ax1.xaxis.set_minor_locator(loc1)
-            ax1.tick_params('both', direction='out', which='both')
-            ax1.plot(nu_energy, self.vacuum_prob_I_E, 'r', linewidth=1, label=r'IO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_I_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_I_E.pdf')
-
-        return self.vacuum_prob_I_E
-
-    def eval_vacuum_prob_energy(self, nu_energy, plot_this=False):
-
-        self.eval_vacuum_prob_N_energy(nu_energy)
-        self.eval_vacuum_prob_I_energy(nu_energy)
-
-        if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
-            ax1.set_xlim(1.5, 10.5)
-            ax1.set_ylabel(r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.xaxis.set_major_locator(loc)
-            ax1.xaxis.set_minor_locator(loc1)
-            ax1.tick_params('both', direction='out', which='both')
-            ax1.plot(nu_energy, self.vacuum_prob_N_E, 'b', linewidth=1, label=r'NO')
-            ax1.plot(nu_energy, self.vacuum_prob_I_E, 'r--', linewidth=1, label=r'IO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_E.pdf')
-
-        return self.vacuum_prob_N_E, self.vacuum_prob_I_E
 
     def potential(self, nu_energy):
         y_e = 0.5
         return -1.52e-4 * y_e * self.rho * nu_energy * 1.e-3
 
-    def eval_matter_prob_N(self, plot_this=False):
+    def eval_matter_prob_N(self, nu_energy=None, plot_this=False):
 
-        x = np.arange(0.01, 500000, 1.)  # [m/MeV]
-        nu_en = self.baseline * 1000 / x
+        if nu_energy is not None:
+            x = self.baseline * 1000 / nu_energy  # [m/MeV]
+            nu_en = nu_energy
+        else:
+            x = np.arange(0.01, 500000, 1.)  # [m/MeV]
+            nu_en = self.baseline * 1000 / x
 
         deltam_ee = self.deltam_3l_N - self.sin2_12 * self.deltam_21
         deltam_32 = self.deltam_3l_N - self.deltam_21
@@ -340,26 +229,25 @@ class OscillationProbability:
                                - cc * self.sin2(x, deltam_32_m)
 
         if plot_this:
-
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]')
-            ax1.set_xlim(0.04, 35)
-            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.semilogx(x / 1000, self.matter_prob_N, 'b', linewidth=1, label=r'NO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
+            ylabel = r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
+            if nu_energy is not None:
+                plot_function(x_=[nu_energy], y_=[self.matter_prob_N], label_=[r'NO'], colours=['b'],
+                              ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
+            else:
+                xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
+                plot_function(x_=[x / 1000.], y_=[self.matter_prob_N], label_=[r'NO'], colours=['b'],
+                              ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.matter_prob_N
 
-    def eval_matter_prob_I(self, plot_this=False):
+    def eval_matter_prob_I(self, nu_energy=None, plot_this=False):
 
-        x = np.arange(0.01, 500000, 1.)  # [m/MeV]
-        nu_en = self.baseline * 1000 / x
+        if nu_energy is not None:
+            x = self.baseline * 1000 / nu_energy  # [m/MeV]
+            nu_en = nu_energy
+        else:
+            x = np.arange(0.01, 500000, 1.)  # [m/MeV]
+            nu_en = self.baseline * 1000 / x
 
         deltam_ee = self.deltam_3l_I + self.deltam_21 * (1. - self.sin2_12)
         deltam_31 = self.deltam_3l_I + self.deltam_21
@@ -385,184 +273,44 @@ class OscillationProbability:
         cc = sin2_12_m * 4 * sin2_13_m * (1. - sin2_13_m)
 
         self.matter_prob_I = 1. - aa * self.sin2(x, deltam_21_m) \
-                               - bb * self.sin2(x, deltam_31_m) \
-                               - cc * self.sin2(x, deltam_32_m)
+                             - bb * self.sin2(x, deltam_31_m) \
+                             - cc * self.sin2(x, deltam_32_m)
 
         if plot_this:
-
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]')
-            ax1.set_xlim(0.04, 35)
-            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.semilogx(x / 1000, self.matter_prob_I, 'r', linewidth=1, label=r'IO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
+            ylabel = r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
+            if nu_energy is not None:
+                plot_function(x_=[nu_energy], y_=[self.matter_prob_I], label_=[r'IO'], colours=['r'],
+                              ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
+            else:
+                xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
+                plot_function(x_=[x / 1000.], y_=[self.matter_prob_I], label_=[r'IO'], colours=['r'],
+                              ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.matter_prob_I
 
-    def eval_matter_prob(self, plot_this):
+    def eval_matter_prob(self, nu_energy=None, plot_this=False):
 
-        self.eval_matter_prob_N()
-        self.eval_matter_prob_I()
+        self.eval_matter_prob_N(nu_energy=nu_energy)
+        self.eval_matter_prob_I(nu_energy=nu_energy)
 
         if plot_this:
-
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            # fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]')
-            ax1.set_xlim(0.04, 100)  # 0. - 50
-            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            x = np.arange(0.01, 500000, 1.)  # [m/MeV]
-            ax1.semilogx(x / 1000, self.matter_prob_N, 'b', linewidth=1, label=r'NO')
-            ax1.semilogx(x / 1000, self.matter_prob_I, 'r--', linewidth=1, label=r'IO')
-            ax1.legend(loc='lower left')
-            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
+            ylabel = r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
+            if nu_energy is not None:
+                plot_function(x_=[nu_energy, nu_energy],
+                              y_=[self.matter_prob_N, self.matter_prob_I],
+                              label_=[r'NO', r'IO'],
+                              colours=['b', 'r--'],
+                              ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
+            else:
+                x = np.arange(0.01, 500000, 1.)  # [m/MeV]
+                xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
+                plot_function(x_=[x / 1000., x / 1000.],
+                              y_=[self.matter_prob_N, self.matter_prob_I],
+                              label_=[r'NO', r'IO'],
+                              colours=['b', 'r--'],
+                              ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.matter_prob_N, self.matter_prob_I
-
-    def eval_matter_prob_N_energy(self, nu_energy, plot_this=False):
-
-        x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
-
-        deltam_ee = self.deltam_3l_N - self.sin2_12 * self.deltam_21
-        deltam_32 = self.deltam_3l_N - self.deltam_21
-
-        c2_12 = 1. - self.sin2_12
-        c2_13 = 1. - self.sin2_13_N
-        c_2_12 = 1. - 2. * self.sin2_12
-        pot = self.potential(nu_energy)
-        appo_12 = c2_13 * pot / self.deltam_21
-
-        sin2_12_m = self.sin2_12 * (1. + 2. * c2_12 * appo_12 + 3. * c2_12 * c_2_12 * appo_12 * appo_12)
-        deltam_21_m = self.deltam_21 * (1. - c_2_12 * appo_12 + 2. * self.sin2_12 * c2_12 * appo_12 * appo_12)
-        sin2_13_m = self.sin2_13_N * (1. + 2. * c2_13 * pot / deltam_ee)
-        deltam_31_m = self.deltam_3l_N \
-                      * (1. - pot / self.deltam_3l_N * (c2_12 * c2_13 - self.sin2_13_N
-                                                        - self.sin2_12 * c2_12 * c2_13 * appo_12))
-        deltam_32_m = deltam_32 \
-                      * (1. - pot / deltam_32 * (self.sin2_12 * c2_13 - self.sin2_13_N
-                                                 + self.sin2_12 * c2_12 * c2_13 * appo_12))
-
-        aa = np.power(1. - sin2_13_m, 2) * 4. * sin2_12_m * (1. - sin2_12_m)
-        bb = (1. - sin2_12_m) * 4 * sin2_13_m * (1. - sin2_13_m)
-        cc = sin2_12_m * 4 * sin2_13_m * (1. - sin2_13_m)
-
-        self.matter_prob_N_E = 1. - aa * self.sin2(x_energy, deltam_21_m) \
-                               - bb * self.sin2(x_energy, deltam_31_m) \
-                               - cc * self.sin2(x_energy, deltam_32_m)
-
-        if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
-            ax1.set_xlim(1.5, 10.5)
-            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.xaxis.set_major_locator(loc)
-            ax1.xaxis.set_minor_locator(loc1)
-            ax1.tick_params('both', direction='out', which='both')
-            ax1.plot(nu_energy, self.matter_prob_N_E, 'b', linewidth=1, label=r'NO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
-
-        return self.matter_prob_N_E
-
-    def eval_matter_prob_I_energy(self, nu_energy, plot_this=False):
-
-        x_energy = self.baseline * 1000 / nu_energy  # [m/MeV]
-
-        deltam_ee = self.deltam_3l_I + self.deltam_21 * (1. - self.sin2_12)
-        deltam_31 = self.deltam_3l_I + self.deltam_21
-
-        c2_12 = 1. - self.sin2_12
-        c2_13 = 1. - self.sin2_13_I
-        c_2_12 = 1. - 2. * self.sin2_12
-        pot = self.potential(nu_energy)
-        appo_12 = c2_13 * pot / self.deltam_21
-
-        sin2_12_m = self.sin2_12 * (1. + 2. * c2_12 * appo_12 + 3. * c2_12 * c_2_12 * appo_12 * appo_12)
-        deltam_21_m = self.deltam_21 * (1. - c_2_12 * appo_12 + 2. * self.sin2_12 * c2_12 * appo_12 * appo_12)
-        sin2_13_m = self.sin2_13_I * (1. + 2. * c2_13 * pot / deltam_ee)
-        deltam_31_m = deltam_31 \
-                      * (1. - pot / deltam_31 * (c2_12 * c2_13 - self.sin2_13_I
-                                                 - self.sin2_12 * c2_12 * c2_13 * appo_12))
-        deltam_32_m = self.deltam_3l_I \
-                      * (1. - pot / self.deltam_3l_I * (self.sin2_12 * c2_13 - self.sin2_13_I
-                                                        + self.sin2_12 * c2_12 * c2_13 * appo_12))
-
-        aa = np.power(1. - sin2_13_m, 2) * 4. * sin2_12_m * (1. - sin2_12_m)
-        bb = (1. - sin2_12_m) * 4 * sin2_13_m * (1. - sin2_13_m)
-        cc = sin2_12_m * 4 * sin2_13_m * (1. - sin2_13_m)
-
-        self.matter_prob_I_E = 1. - aa * self.sin2(x_energy, deltam_21_m) \
-                               - bb * self.sin2(x_energy, deltam_31_m) \
-                               - cc * self.sin2(x_energy, deltam_32_m)
-
-        if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
-            ax1.set_xlim(1.5, 10.5)
-            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.xaxis.set_major_locator(loc)
-            ax1.xaxis.set_minor_locator(loc1)
-            ax1.tick_params('both', direction='out', which='both')
-            ax1.plot(nu_energy, self.matter_prob_I_E, 'r', linewidth=1, label=r'IO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
-
-        return self.matter_prob_I_E
-
-    def eval_matter_prob_energy(self, nu_energy, plot_this=False):
-
-        self.eval_matter_prob_N_energy(nu_energy)
-        self.eval_matter_prob_I_energy(nu_energy)
-
-        if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig1 = plt.figure(figsize=[8, 5.5])
-            ax1 = fig1.add_subplot(111)
-            # fig1.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax1.grid(alpha=0.45)
-            ax1.set_xlabel(r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]')
-            ax1.set_xlim(1.5, 10.5)
-            ax1.set_ylabel(r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$')
-            ax1.set_ylim(0.08, 1.02)
-            ax1.xaxis.set_major_locator(loc)
-            ax1.xaxis.set_minor_locator(loc1)
-            ax1.tick_params('both', direction='out', which='both')
-            ax1.plot(nu_energy, self.matter_prob_N_E, 'b', linewidth=1, label=r'NO')
-            ax1.plot(nu_energy, self.matter_prob_I_E, 'r--', linewidth=1, label=r'IO')
-            ax1.legend(loc='lower right')
-            # fig1.savefig('SpectrumPlots/prob_N_E.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/prob_N_E.pdf')
-
-        return self.matter_prob_N_E, self.matter_prob_I_E
-
 
     ### evaluation of the survival probability with the same formula as above written in an other way
     ### see JHEP05(2013)131, eq. (2.6), Japanese (https://arxiv.org/abs/1210.8141)
@@ -577,34 +325,34 @@ class OscillationProbability:
 
         # Normal Ordering
         if (ordering == 1) or (ordering == 0):
-            A_N = math.pow(1 - self.sin2_13_N, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
-            B_N = 4 * self.sin2_13_N * (1 - self.sin2_13_N)
-            C_N = self.sin2_12 * B_N
-            D_N = self.sin2_12 * B_N / 2.
+            a_n = math.pow(1 - self.sin2_13_N, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
+            b_n = 4 * self.sin2_13_N * (1 - self.sin2_13_N)
+            c_n = self.sin2_12 * b_n
+            d_n = self.sin2_12 * b_n / 2.
 
-            self.jhep_prob_N = 1. - A_N * self.sin2(x, self.deltam_21) - B_N * self.sin2(x, abs(self.deltam_3l_N)) \
-                                  - C_N * self.sin2(x, self.deltam_21) * self.cos(x, 2 * abs(self.deltam_3l_N)) \
-                                  + D_N * self.sin(x, 2 * abs(self.deltam_3l_N)) * self.sin(x, 2 * self.deltam_21)
-            self.jhep_prob_E_N = 1. - A_N * self.sin2(x_E, self.deltam_21) - B_N * self.sin2(x_E, abs(self.deltam_3l_N)) \
-                                    - C_N * self.sin2(x_E, self.deltam_21) * self.cos(x_E, 2 * abs(self.deltam_3l_N)) \
-                                    + D_N * self.sin(x_E, 2 * abs(self.deltam_3l_N)) * self.sin(x_E, 2 * self.deltam_21)
+            self.jhep_prob_N = 1. - a_n * self.sin2(x, self.deltam_21) - b_n * self.sin2(x, abs(self.deltam_3l_N)) \
+                                  - c_n * self.sin2(x, self.deltam_21) * self.cos(x, 2 * abs(self.deltam_3l_N)) \
+                                  + d_n * self.sin(x, 2 * abs(self.deltam_3l_N)) * self.sin(x, 2 * self.deltam_21)
+            self.jhep_prob_E_N = 1. - a_n * self.sin2(x_E, self.deltam_21) - b_n * self.sin2(x_E, abs(self.deltam_3l_N)) \
+                                    - c_n * self.sin2(x_E, self.deltam_21) * self.cos(x_E, 2 * abs(self.deltam_3l_N)) \
+                                    + d_n * self.sin(x_E, 2 * abs(self.deltam_3l_N)) * self.sin(x_E, 2 * self.deltam_21)
 
         # Inverted Ordering
         if (ordering == -1) or (ordering == 0):
-            A_I = math.pow(1 - self.sin2_13_I, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
-            B_I = 4 * self.sin2_13_I * (1 - self.sin2_13_I)
-            C_I = self.sin2_12 * B_I
-            D_I = self.sin2_12 * B_I / 2.
+            a_i = math.pow(1 - self.sin2_13_I, 2) * 4. * self.sin2_12 * (1 - self.sin2_12)
+            b_i = 4 * self.sin2_13_I * (1 - self.sin2_13_I)
+            c_i = self.sin2_12 * b_i
+            d_i = self.sin2_12 * b_i / 2.
 
             delta_appo = self.deltam_21 + self.deltam_3l_I
             print(delta_appo)
 
-            self.jhep_prob_I = 1. - A_I * self.sin2(x, self.deltam_21) - B_I * self.sin2(x, abs(delta_appo)) \
-                                  - C_I * self.sin2(x, self.deltam_21) * self.cos(x, 2 * abs(delta_appo)) \
-                                  - D_I * self.sin(x, 2 * abs(delta_appo)) * self.sin(x, 2 * self.deltam_21)
-            self.jhep_prob_E_I = 1. - A_I * self.sin2(x_E, self.deltam_21) - B_I * self.sin2(x_E, abs(delta_appo)) \
-                                    - C_I * self.sin2(x_E, self.deltam_21) * self.cos(x_E, 2 * abs(delta_appo)) \
-                                    - D_I * self.sin(x_E, 2 * abs(delta_appo)) * self.sin(x_E, 2 * self.deltam_21)
+            self.jhep_prob_I = 1. - a_i * self.sin2(x, self.deltam_21) - b_i * self.sin2(x, abs(delta_appo)) \
+                                  - c_i * self.sin2(x, self.deltam_21) * self.cos(x, 2 * abs(delta_appo)) \
+                                  - d_i * self.sin(x, 2 * abs(delta_appo)) * self.sin(x, 2 * self.deltam_21)
+            self.jhep_prob_E_I = 1. - a_i * self.sin2(x_E, self.deltam_21) - b_i * self.sin2(x_E, abs(delta_appo)) \
+                                    - c_i * self.sin2(x_E, self.deltam_21) * self.cos(x_E, 2 * abs(delta_appo)) \
+                                    - d_i * self.sin(x_E, 2 * abs(delta_appo)) * self.sin(x_E, 2 * self.deltam_21)
 
         if plot_this:
 
@@ -675,3 +423,36 @@ class OscillationProbability:
         if ordering == 0:
             return self.jhep_prob_E_N, self.jhep_prob_E_I
 
+
+def plot_function(x_, y_, label_, colours, ylabel_, xlabel_=r'$E_{\nu}$ [\si{MeV}]', xlim=None, ylim=None, logx=False):
+    if len(x_) != len(y_):
+        print("Error in plot_function: different lengths - skip plotting")
+        return 1
+
+    loc = plticker.MultipleLocator(base=2.0)
+    loc1 = plticker.MultipleLocator(base=0.5)
+
+    fig = plt.figure(figsize=[8, 5.5])
+    fig.subplots_adjust(left=0.09, right=0.97, top=0.95)
+    ax_ = fig.add_subplot(111)
+    for i_ in np.arange(len(x_)):
+        if not logx:
+            ax_.plot(x_[i_], y_[i_], colours[i_], linewidth=1., label=label_[i_])
+        else:
+            ax_.semilogx(x_[i_], y_[i_], colours[i_], linewidth=1., label=label_[i_])
+
+    ax_.grid(alpha=0.65)
+    ax_.set_xlabel(xlabel_)
+    ax_.set_ylabel(ylabel_)
+
+    if xlim is not None:
+        ax_.set_xlim(xlim)
+    if ylim is not None:
+        ax_.set_ylim(ylim)
+
+    if not logx:
+        ax_.xaxis.set_major_locator(loc)
+        ax_.xaxis.set_minor_locator(loc1)
+    ax_.tick_params('both', direction='out', which='both')
+    ax_.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    ax_.legend()

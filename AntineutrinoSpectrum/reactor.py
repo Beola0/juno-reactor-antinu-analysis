@@ -6,14 +6,15 @@ from scipy.interpolate import interp1d
 import math
 import sys
 
+
 # TODO:
 # - initialize class with .json file with fission fractions --> DONE
 # - create spectrum from inputs, like DYB spectrum --> DONE
-# - remove part for plotting
+# - remove part for plotting --> improved, DONE
 # - add methods to change fission fractions --> DONE
 # - move IBD part to DetectorResponse (??)
 # - add SNF and NonEq contributions --> DONE
-# - add nuisances: for matter density, SNF and NonEq
+# - add nuisances: for SNF and NonEq
 
 
 class ReactorSpectrum:
@@ -49,34 +50,34 @@ class ReactorSpectrum:
 
         self.which_xsec = ''
         self.which_isospectrum = ''
-        
+
     def set_fission_fractions(self, f235u_, f239pu_, f238u_, f241pu_):
         self.fiss_frac_235u = f235u_
         self.fiss_frac_239pu = f239pu_
         self.fiss_frac_238u = f238u_
         self.fiss_frac_241pu = f241pu_
-        
+
     def set_f235u(self, f235u_):
         self.fiss_frac_235u = f235u_
-        
+
     def set_f238u(self, f238u_):
         self.fiss_frac_238u = f238u_
 
     def set_f239pu(self, f239pu_):
         self.fiss_frac_239pu = f239pu_
-        
+
     def set_f241pu(self, f241pu_):
         self.fiss_frac_241pu = f241pu_
-        
+
     def get_f235u(self):
         return self.fiss_frac_235u
-        
+
     def get_f238u(self):
         return self.fiss_frac_238u
 
     def get_f239pu(self):
         return self.fiss_frac_239pu
-        
+
     def get_f241pu(self):
         return self.fiss_frac_241pu
 
@@ -172,30 +173,12 @@ class ReactorSpectrum:
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.iso_spectrum, 'k', linewidth=1.5, label='Total')
-            # ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            # ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            # ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            # ax.plot(nu_energy_, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.plot(nu_energy_, u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            ax.plot(nu_energy_, pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)'
+            plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
+                          y_=[self.iso_spectrum, u235, pu239, u238, pu241],
+                          label_=['Total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu'],
+                          colours=['k', 'b--', 'r-.', 'g:', 'y'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
 
@@ -219,30 +202,12 @@ class ReactorSpectrum:
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.iso_spectrum, 'k', linewidth=1.5, label='Total')
-            # ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            # ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            # ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            # ax.plot(nu_energy_, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.plot(nu_energy_, u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            ax.plot(nu_energy_, pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)'
+            plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
+                          y_=[self.iso_spectrum, u235, pu239, u238, pu241],
+                          label_=['Total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu'],
+                          colours=['k', 'b--', 'r-.', 'g:', 'y'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
 
@@ -280,25 +245,12 @@ class ReactorSpectrum:
         s_combo = interp1d(unfolded_pu_combo["bin_center"], unfolded_pu_combo["isotopic_spectrum"])
 
         self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
-                            + df_238 * u238 + (df_241 - 0.183*df_239) * pu241
+                            + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.iso_spectrum, 'k', linewidth=1.5, label='Total')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)'
+            plot_function(x_=[nu_energy_], y_=[self.iso_spectrum], label_=['Total'], colours=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
 
@@ -324,29 +276,16 @@ class ReactorSpectrum:
         self.react_spectrum = self.thermal_power / en_per_fiss * self.iso_spectrum * const
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.react_spectrum, 'k', linewidth=1.5, label='Reactor spectrum')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]'
+            plot_function(x_=[nu_energy_], y_=[self.react_spectrum], label_=['Reactor spectrum'], colours=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.react_spectrum
 
     def reactor_flux_no_osc(self, nu_energy_, which_isospectrum='HM',
                             bool_snf=False, bool_noneq=False, plot_this=False):
 
-        den = 4. * math.pi * np.power(self.baseline*1.e5, 2)
+        den = 4. * math.pi * np.power(self.baseline * 1.e5, 2)
 
         if self.which_isospectrum != which_isospectrum:
             if which_isospectrum == 'V':
@@ -383,25 +322,13 @@ class ReactorSpectrum:
             self.bool_noneq = False
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(nu_energy_, self.react_flux, 'k', linewidth=1.5, label='Reactor flux')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
+            plot_function(x_=[nu_energy_], y_=[self.react_flux], label_=['Reactor flux'], colours=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.react_flux
 
-    ### TODO: move to DetectorResponse class
+    ### TODO: move cross section to DetectorResponse class
 
     def eval_n_protons(self):
 
@@ -477,20 +404,9 @@ class ReactorSpectrum:
         self.x_sec_np = self.x_sec * self.proton_number
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(nu_energy_, self.x_sec*self.proton_number, 'k', linewidth=1.5, label='IBD cross section')
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/cross_section.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/cross_section.pdf')
+            ylabel = r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]'
+            plot_function(x_=[nu_energy_], y_=[self.x_sec_np], label_=['IBD cross section'], colours=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.x_sec_np
 
@@ -525,20 +441,38 @@ class ReactorSpectrum:
         self.spectrum_unosc = self.react_flux * self.x_sec_np
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label='spectrum')  # not normalized spectrum
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            # plt.savefig('SpectrumPlots/unoscillated_spectrum.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/unoscillated_spectrum.pdf')
+            ylabel = r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]'
+            plot_function(x_=[nu_energy_], y_=[self.spectrum_unosc], label_=['spectrum'], colours=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.spectrum_unosc
+
+
+def plot_function(x_, y_, label_, colours, ylabel_, xlim=None, ylim=None):
+    if len(x_) != len(y_):
+        print("Error in plot_function: different lengths - skip plotting")
+        return 1
+
+    loc = plticker.MultipleLocator(base=2.0)
+    loc1 = plticker.MultipleLocator(base=0.5)
+
+    fig = plt.figure(figsize=[8, 5.5])
+    fig.subplots_adjust(left=0.09, right=0.97, top=0.95)
+    ax_ = fig.add_subplot(111)
+    for i_ in np.arange(len(x_)):
+        ax_.plot(x_[i_], y_[i_], colours[i_], linewidth=1.5, label=label_[i_])
+
+    ax_.grid(alpha=0.65)
+    ax_.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
+    ax_.set_ylabel(ylabel_)
+
+    if xlim is not None:
+        ax_.set_xlim(xlim)
+    if ylim is not None:
+        ax_.set_ylim(ylim)
+
+    ax_.xaxis.set_major_locator(loc)
+    ax_.xaxis.set_minor_locator(loc1)
+    ax_.tick_params('both', direction='out', which='both')
+    ax_.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    ax_.legend()

@@ -9,7 +9,7 @@ from oscillation import OscillationProbability
 from detector_response import DetectorResponse
 
 # TODO:
-# - remove parts for plotting
+# - remove parts for plotting --> improved, DONE
 # - adapt change of baselines and powers --> add methods, read from file
 # - initialise with .json file --> DONE
 # - include sum over more reactors in single method
@@ -37,7 +37,8 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.baselines = []
         self.powers = []
 
-    def set_L_P_distribution(self, baselines, powers):  # TODO: need adjustments
+    # TODO: need adjustments
+    def set_L_P_distribution(self, baselines, powers):
         self.baselines = baselines
         self.powers = powers
 
@@ -51,35 +52,22 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         if matter:
             ylabel_ = r'$S_{\nu}$ [N$_{\nu}$/\si{s}/\si{\MeV}] (in matter)'
             print("\nevaluating oscillation probability in matter - N")
-            prob = OscillationProbability.eval_matter_prob_N_energy(self, nu_energy_)
+            prob = OscillationProbability.eval_matter_prob_N(self, nu_energy_)
         else:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
             print("\nevaluating oscillation probability in vacuum - N")
-            prob = OscillationProbability.eval_vacuum_prob_N_energy(self, nu_energy_)
+            prob = OscillationProbability.eval_vacuum_prob_N(self, nu_energy_)
 
         self.osc_spect_N = self.spectrum_unosc * prob
 
         if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlim(1.5, 10.5)
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_ylabel(ylabel_)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
             if plot_un:
-                ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label=r'Unoscillated spectrum')
-            ax.plot(nu_energy_, self.osc_spect_N, 'b', linewidth=1, label=r'NO')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            ax.legend()
-            # fig.savefig('SpectrumPlots/osc_spectrum_N.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/osc_spectrum_N.pdf')
+                plot_function(x_=[nu_energy_, nu_energy_], y_=[self.spectrum_unosc, self.osc_spect_N],
+                              label_=[r'Unoscillated spectrum', r'NO'], colours=['k', 'b'],
+                              ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
+            else:
+                plot_function(x_=[nu_energy_], y_=[self.osc_spect_N], label_=[r'NO'], colours=['b'],
+                              ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
         return self.osc_spect_N
 
@@ -92,35 +80,22 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         if matter:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}] (in matter)'
             print("\nevaluating oscillation probability in matter - I")
-            prob = OscillationProbability.eval_matter_prob_I_energy(self, nu_energy_)
+            prob = OscillationProbability.eval_matter_prob_I(self, nu_energy_)
         else:
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
             print("\nevaluating oscillation probability in vacuum - I")
-            prob = OscillationProbability.eval_vacuum_prob_I_energy(self, nu_energy_)
+            prob = OscillationProbability.eval_vacuum_prob_I(self, nu_energy_)
 
         self.osc_spect_I = self.spectrum_unosc * prob
 
         if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlim(1.5, 10.5)
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_ylabel(ylabel_)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
             if plot_un:
-                ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label=r'Unoscillated spectrum')
-            ax.plot(nu_energy_, self.osc_spect_I, 'R', linewidth=1, label=r'IO')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            ax.legend()
-            # fig.savefig('SpectrumPlots/osc_spectrum_N.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/osc_spectrum_I.pdf')
+                plot_function(x_=[nu_energy_, nu_energy_], y_=[self.spectrum_unosc, self.osc_spect_I],
+                              label_=[r'Unoscillated spectrum', r'IO'], colours=['k', 'r'],
+                              ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
+            else:
+                plot_function(x_=[nu_energy_], y_=[self.osc_spect_I], label_=[r'IO'], colours=['r'],
+                              ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
         return self.osc_spect_I
 
@@ -138,33 +113,20 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
 
         if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlim(1.5, 10.5)
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_ylabel(ylabel_)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
             if plot_un:
-                ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label=r'Unoscillated spectrum')
-            ax.plot(nu_energy_, self.osc_spect_N, 'b', linewidth=1, label=r'NO')
-            ax.plot(nu_energy_, self.osc_spect_I, 'r--', linewidth=1, label=r'IO')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            ax.legend()
-            # fig.savefig('SpectrumPlots/osc_spectrum.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/osc_spectrum.pdf')
+                plot_function(x_=[nu_energy_, nu_energy_, nu_energy_],
+                              y_=[self.spectrum_unosc, self.osc_spect_N, self.osc_spect_I],
+                              label_=[r'Unoscillated spectrum', r'NO', r'IO'], colours=['k', 'b', 'r--'],
+                              ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
+            else:
+                plot_function(x_=[nu_energy_, nu_energy_], y_=[self.osc_spect_N, self.osc_spect_I], label_=[r'NO', r'IO'],
+                              colours=['b', 'r--'], ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
         return self.osc_spect_N, self.osc_spect_I
 
     ### oscillated spectrum with energy resolution (via numerical convolution)
     ### for further reference: https://arxiv.org/abs/1210.8141, eq. (2.12) and (2.14)
-    ### see also the implementation of the numerical convolution in the class Convolution
+    ### see also the implementation of the numerical convolution in the class DetectorResponse
 
     def resol_spectrum_N(self, visible_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
                          bool_snf=True, bool_noneq=True, plot_this=False):
@@ -186,24 +148,9 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
 
         if plot_this:
-
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
-            ax.set_xlim(0.5, 9.5)
-            ax.set_ylabel(ylabel_)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            ax.plot(visible_energy_, self.resol_N, 'b', linewidth=1, label=r'NO')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            ax.legend()
-            # fig.savefig('SpectrumPlots/resol_spectrum_N.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/resol_spectrum_N.pdf')
+            plot_function(x_=[visible_energy_], y_=[self.resol_N], label_=[r'NO'], colours=['b'],
+                          ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]',
+                          xlim=[1.5-1., 10.5-1.], ylim=None)
 
         return self.resol_N
 
@@ -226,24 +173,9 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
 
         if plot_this:
-
-            loc = plticker.MultipleLocator(base=1.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
-            ax.set_xlim(0.5, 9.5)
-            ax.set_ylabel(ylabel_)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            ax.plot(visible_energy_, self.resol_I, 'r', linewidth=1, label=r'IO')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            ax.legend()
-            # fig.savefig('SpectrumPlots/resol_spectrum_N.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/resol_spectrum_N.pdf')
+            plot_function(x_=[visible_energy_], y_=[self.resol_I], label_=[r'IO'], colours=['r'],
+                          ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]',
+                          xlim=[1.5-1., 10.5-1.], ylim=None)
 
         return self.resol_I
 
@@ -263,25 +195,10 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
 
         if plot_this:
-
-            loc = plticker.MultipleLocator(base=1.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
-            ax.set_xlim(0.5, 9.5)
-            ax.set_ylabel(ylabel_)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            ax.plot(visible_energy_, self.resol_N, 'b', linewidth=1, label=r'NO')
-            ax.plot(visible_energy_, self.resol_I, 'r--', linewidth=1, label=r'IO')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            ax.legend()
-            # fig.savefig('SpectrumPlots/resol_spectrum.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/resol_spectrum.pdf')
+            plot_function(x_=[visible_energy_, visible_energy_], y_=[self.resol_N, self.resol_I],
+                          label_=[r'NO', r'IO'], colours=['b', 'r--'],
+                          ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]',
+                          xlim=[1.5-1., 10.5-1.], ylim=None)
 
         return self.resol_N, self.resol_I
 
@@ -653,3 +570,37 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.baseline = 52.5
 
         return self.sum_resol_I
+
+
+def plot_function(x_, y_, label_, colours, ylabel_, xlabel_=r'$E_{\nu}$ [\si{MeV}]', xlim=None, ylim=None, logx=False):
+    if len(x_) != len(y_):
+        print("Error in plot_function: different lengths - skip plotting")
+        return 1
+
+    loc = plticker.MultipleLocator(base=2.0)
+    loc1 = plticker.MultipleLocator(base=0.5)
+
+    fig = plt.figure(figsize=[8, 5.5])
+    fig.subplots_adjust(left=0.09, right=0.97, top=0.95)
+    ax_ = fig.add_subplot(111)
+    for i_ in np.arange(len(x_)):
+        if not logx:
+            ax_.plot(x_[i_], y_[i_], colours[i_], linewidth=1., label=label_[i_])
+        else:
+            ax_.semilogx(x_[i_], y_[i_], colours[i_], linewidth=1., label=label_[i_])
+
+    ax_.grid(alpha=0.65)
+    ax_.set_xlabel(xlabel_)
+    ax_.set_ylabel(ylabel_)
+
+    if xlim is not None:
+        ax_.set_xlim(xlim)
+    if ylim is not None:
+        ax_.set_ylim(ylim)
+
+    if not logx:
+        ax_.xaxis.set_major_locator(loc)
+        ax_.xaxis.set_minor_locator(loc1)
+    ax_.tick_params('both', direction='out', which='both')
+    ax_.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    ax_.legend()
