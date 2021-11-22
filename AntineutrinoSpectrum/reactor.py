@@ -34,6 +34,7 @@ class ReactorSpectrum:
         self.thermal_power = inputs_json_["thermal_power"]
         self.baseline = inputs_json_["baseline"]
 
+        self.verbose = inputs_json_["verbose"]
         self.inputs_json = inputs_json_
 
         self.iso_spectrum = 0.
@@ -44,10 +45,12 @@ class ReactorSpectrum:
         self.spectrum_unosc = 0.
         self.proton_number = 0.
         self.snf = 0.
-        self.bool_snf = False
         self.noneq = 0.
-        self.bool_noneq = False
 
+        self.bool_snf = False
+        self.bool_noneq = False
+        # self.bool_bsl = False
+        # self.bool_th_pw = False
         self.which_xsec = ''
         self.which_isospectrum = ''
 
@@ -156,7 +159,8 @@ class ReactorSpectrum:
     def isotopic_spectrum_vogel(self, nu_energy_, plot_this=False):
 
         self.which_isospectrum = 'V'
-        print("\nUsing Vogel isotopic spectra")
+        if self.verbose:
+            print("\nUsing Vogel isotopic spectra")
 
         ### params taken from Vogel, Engel, PRD 39-11 pp 3378, 1989
         ### exponential of a polynomial of second order
@@ -177,7 +181,7 @@ class ReactorSpectrum:
             plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
                           y_=[self.iso_spectrum, u235, pu239, u238, pu241],
                           label_=['Total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu'],
-                          colours=['k', 'b--', 'r-.', 'g:', 'y'],
+                          styles=['k', 'b--', 'r-.', 'g:', 'y'],
                           ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
@@ -185,7 +189,8 @@ class ReactorSpectrum:
     def isotopic_spectrum_hubermueller(self, nu_energy_, plot_this=False):
 
         self.which_isospectrum = 'HM'
-        print("\nUsing Huber+Mueller isotopic spectra")
+        if self.verbose:
+            print("\nUsing Huber+Mueller isotopic spectra")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for others
         ### exponential of a polynomial of fifth order
@@ -206,7 +211,7 @@ class ReactorSpectrum:
             plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
                           y_=[self.iso_spectrum, u235, pu239, u238, pu241],
                           label_=['Total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu'],
-                          colours=['k', 'b--', 'r-.', 'g:', 'y'],
+                          styles=['k', 'b--', 'r-.', 'g:', 'y'],
                           ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
@@ -214,7 +219,8 @@ class ReactorSpectrum:
     def isotopic_spectrum_DYB(self, nu_energy_, plot_this=False):
 
         self.which_isospectrum = 'DYB'
-        print("\nUsing DYB isotopic spectra (default)")
+        if self.verbose:
+            print("\nUsing DYB isotopic spectra (default)")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for 241Pu
         params_u238 = [4.833e-1, 1.927e-1, -1.283e-1, -6.762e-3, 2.233e-3, -1.536e-4]
@@ -249,7 +255,7 @@ class ReactorSpectrum:
 
         if plot_this:
             ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)'
-            plot_function(x_=[nu_energy_], y_=[self.iso_spectrum], label_=['Total'], colours=['k'],
+            plot_function(x_=[nu_energy_], y_=[self.iso_spectrum], label_=['Total'], styles=['k'],
                           ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
@@ -258,17 +264,16 @@ class ReactorSpectrum:
 
         const = 6.241509e21
 
-        if self.which_isospectrum != which_isospectrum:
-            if which_isospectrum == 'V':
-                self.isotopic_spectrum_vogel(nu_energy_)
-            elif which_isospectrum == 'HM':
-                self.isotopic_spectrum_hubermueller(nu_energy_)
-            elif which_isospectrum == 'DYB':
-                self.isotopic_spectrum_DYB(nu_energy_)
-            else:
-                print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                      "in reactor_spectrum function, ReactorSpectrum class.")
-                sys.exit()
+        if which_isospectrum == 'V':
+            self.isotopic_spectrum_vogel(nu_energy_)
+        elif which_isospectrum == 'HM':
+            self.isotopic_spectrum_hubermueller(nu_energy_)
+        elif which_isospectrum == 'DYB':
+            self.isotopic_spectrum_DYB(nu_energy_)
+        else:
+            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  "in reactor_spectrum function, ReactorSpectrum class.")
+            sys.exit()
 
         en_per_fiss = self.fiss_frac_235u * self.fiss_en_235u + self.fiss_frac_239pu * self.fiss_en_239pu \
                       + self.fiss_frac_238u * self.fiss_en_238u + self.fiss_frac_241pu * self.fiss_en_241pu
@@ -277,7 +282,7 @@ class ReactorSpectrum:
 
         if plot_this:
             ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]'
-            plot_function(x_=[nu_energy_], y_=[self.react_spectrum], label_=['Reactor spectrum'], colours=['k'],
+            plot_function(x_=[nu_energy_], y_=[self.react_spectrum], label_=['Reactor spectrum'], styles=['k'],
                           ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.react_spectrum
@@ -285,27 +290,28 @@ class ReactorSpectrum:
     def reactor_flux_no_osc(self, nu_energy_, which_isospectrum='HM',
                             bool_snf=False, bool_noneq=False, plot_this=False):
 
-        den = 4. * math.pi * np.power(self.baseline * 1.e5, 2)
+        den = 4. * math.pi * np.power(self.baseline * 1.e5, 2)  # baseline in [cm]
 
-        if self.which_isospectrum != which_isospectrum:
-            if which_isospectrum == 'V':
-                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
-            elif which_isospectrum == 'HM':
-                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
-            elif which_isospectrum == 'DYB':
-                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
-            else:
-                print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                      "in reactor_flux_no_osc function, ReactorSpectrum class.")
-                sys.exit()
+        if which_isospectrum == 'V':
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+        elif which_isospectrum == 'HM':
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+        elif which_isospectrum == 'DYB':
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+        else:
+            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  "in reactor_flux_no_osc function, ReactorSpectrum class.")
+            sys.exit()
 
         self.react_flux = self.react_spectrum / den
 
         if bool_snf:
             self.bool_snf = True
-            print("\nAdding SNF contribution")
+            if self.verbose:
+                print("\nAdding SNF contribution")
             if not np.any(self.snf):
-                print('Reading SNF from file')
+                if self.verbose:
+                    print('Reading SNF from file')
                 self.get_snf_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.react_flux * self.snf
         else:
@@ -313,9 +319,11 @@ class ReactorSpectrum:
 
         if bool_noneq:
             self.bool_noneq = True
-            print("\nAdding NonEq contribution")
+            if self.verbose:
+                print("\nAdding NonEq contribution")
             if not np.any(self.noneq):
-                print('Reading NonEq from file')
+                if self.verbose:
+                    print('Reading NonEq from file')
                 self.get_noneq_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.noneq * self.react_flux
         else:
@@ -323,7 +331,7 @@ class ReactorSpectrum:
 
         if plot_this:
             ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
-            plot_function(x_=[nu_energy_], y_=[self.react_flux], label_=['Reactor flux'], colours=['k'],
+            plot_function(x_=[nu_energy_], y_=[self.react_flux], label_=['Reactor flux'], styles=['k'],
                           ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.react_flux
@@ -344,7 +352,8 @@ class ReactorSpectrum:
     def cross_section_sv(self, nu_energy_):
 
         self.which_xsec = 'SV'
-        print("\nUsing Strumia Vissani cross section from common inputs (default)")
+        if self.verbose:
+            print("\nUsing Strumia Vissani cross section from common inputs (default)")
 
         if self.proton_number == 0.:
             self.eval_n_protons()
@@ -362,7 +371,8 @@ class ReactorSpectrum:
     def cross_section_vb(self, nu_energy_):
 
         self.which_xsec = 'VB'
-        print("\nUsing Vogel Beacom cross section from common inputs")
+        if self.verbose:
+            print("\nUsing Vogel Beacom cross section from common inputs")
 
         if self.proton_number == 0.:
             self.eval_n_protons()
@@ -405,7 +415,7 @@ class ReactorSpectrum:
 
         if plot_this:
             ylabel = r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]'
-            plot_function(x_=[nu_energy_], y_=[self.x_sec_np], label_=['IBD cross section'], colours=['k'],
+            plot_function(x_=[nu_energy_], y_=[self.x_sec_np], label_=['IBD cross section'], styles=['k'],
                           ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.x_sec_np
@@ -413,42 +423,40 @@ class ReactorSpectrum:
     def antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='HM',
                                bool_snf=False, bool_noneq=False, plot_this=False):
 
-        if self.which_isospectrum != which_isospectrum or self.bool_snf != bool_snf or self.bool_noneq != bool_noneq:
-            if which_isospectrum == 'V':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
-                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
-            elif which_isospectrum == 'HM':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
-                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
-            elif which_isospectrum == 'DYB':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
-                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
-            else:
-                print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                      "in antinu_spectrum_no_osc function, ReactorSpectrum class.")
-                sys.exit()
+        if which_isospectrum == 'V':
+            self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                     bool_snf=bool_snf, bool_noneq=bool_noneq)
+        elif which_isospectrum == 'HM':
+            self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                     bool_snf=bool_snf, bool_noneq=bool_noneq)
+        elif which_isospectrum == 'DYB':
+            self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                     bool_snf=bool_snf, bool_noneq=bool_noneq)
+        else:
+            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  "in antinu_spectrum_no_osc function, ReactorSpectrum class.")
+            sys.exit()
 
-        if self.which_xsec != which_xsec:
-            if which_xsec == 'SV':
-                self.cross_section_sv(nu_energy_)
-            elif which_xsec == 'VB':
-                self.cross_section_vb(nu_energy_)
-            else:
-                print("\nError: only 'SV' or 'VB' are accepted values for which_xsec argument, "
-                      "in antinu_spectrum_nu_osc function, ReactorSpectrum class.")
-                sys.exit()
+        if which_xsec == 'SV':
+            self.cross_section_sv(nu_energy_)
+        elif which_xsec == 'VB':
+            self.cross_section_vb(nu_energy_)
+        else:
+            print("\nError: only 'SV' or 'VB' are accepted values for which_xsec argument, "
+                  "in antinu_spectrum_nu_osc function, ReactorSpectrum class.")
+            sys.exit()
 
         self.spectrum_unosc = self.react_flux * self.x_sec_np
 
         if plot_this:
             ylabel = r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]'
-            plot_function(x_=[nu_energy_], y_=[self.spectrum_unosc], label_=['spectrum'], colours=['k'],
+            plot_function(x_=[nu_energy_], y_=[self.spectrum_unosc], label_=['spectrum'], styles=['k'],
                           ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.spectrum_unosc
 
 
-def plot_function(x_, y_, label_, colours, ylabel_, xlim=None, ylim=None):
+def plot_function(x_, y_, label_, styles, ylabel_, xlim=None, ylim=None):
     if len(x_) != len(y_):
         print("Error in plot_function: different lengths - skip plotting")
         return 1
@@ -460,7 +468,7 @@ def plot_function(x_, y_, label_, colours, ylabel_, xlim=None, ylim=None):
     fig.subplots_adjust(left=0.09, right=0.97, top=0.95)
     ax_ = fig.add_subplot(111)
     for i_ in np.arange(len(x_)):
-        ax_.plot(x_[i_], y_[i_], colours[i_], linewidth=1.5, label=label_[i_])
+        ax_.plot(x_[i_], y_[i_], styles[i_], linewidth=1.5, label=label_[i_])
 
     ax_.grid(alpha=0.65)
     ax_.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')

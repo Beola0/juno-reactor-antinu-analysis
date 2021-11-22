@@ -38,9 +38,11 @@
 		"alpha_H" : 0.999885,
 		"m_H" : 1.0078250322,
 		"IBD_efficiency" : 0.822,
-		"daq_time" : 365.25,
+		"daq_time" : 86400,
 		"duty_cycle" : 0.917
 	},
 	"thermal_power" : 26.6,
-	"baseline" : 52.5
+	"baseline" : 52.5,
+	"reactor_list" : "Inputs/list_of_reactors.txt",
+	"verbose" : true
 }
