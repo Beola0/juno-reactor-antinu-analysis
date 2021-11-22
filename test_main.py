@@ -139,7 +139,7 @@ plt.grid()
 plt.legend()
 '''
 
-print('\nOSCILLATED SPECTRUM\n')
+# print('\nOSCILLATED SPECTRUM\n')
 ### OSCILLATED SPECTRUM
 spectrum = OscillatedSpectrum(inputs_json)
 # # spectrum_N, spectrum_I = spectrum.osc_spectrum_old(E, 0, plot_this=True, normalize=False, plot_un=True)
@@ -174,6 +174,16 @@ spectrum = OscillatedSpectrum(inputs_json)
 # plt.legend()
 
 nl = spectrum.get_nl_curves(E-0.78)
+plt.figure()
+for n_ in np.arange(1000):
+    spectrum.set_alphas_pull(np.random.normal(), np.random.normal(), np.random.normal(), np.random.normal())
+    appo = spectrum.eval_non_linearity(E-0.78)
+    plt.plot(E-0.78, appo, 'b--', linewidth=0.5, alpha=0.2)
+plt.plot(E-0.78, nl[0], 'k-', linewidth=1.5, label='nominal')
+plt.xlabel(r'$E_{\text{dep}}$ [\si{\MeV}]')
+plt.ylabel(r'$E_{\text{vis}}/E_{\text{dep}}$')
+plt.grid()
+plt.legend()
 
 plt.figure()
 plt.plot(E-0.78, nl[0], 'k-', linewidth=1, label='nominal')
@@ -181,6 +191,8 @@ plt.plot(E-0.78, nl[1], 'b--', linewidth=1, label='pull0')
 plt.plot(E-0.78, nl[2], 'r-.', linewidth=1, label='pull1')
 plt.plot(E-0.78, nl[3], 'g:', linewidth=1, label='pull2')
 plt.plot(E-0.78, nl[4], 'y-', linewidth=1, label='pull3')
+plt.xlabel(r'$E_{\text{dep}}$ [\si{\MeV}]')
+plt.ylabel(r'$E_{\text{vis}}/E_{\text{dep}}$')
 plt.grid()
 plt.legend()
 
@@ -190,6 +202,8 @@ plt.plot(E-0.78, nl[1]/nl[0], 'b--', linewidth=1, label='pull0')
 plt.plot(E-0.78, nl[2]/nl[0], 'r-.', linewidth=1, label='pull1')
 plt.plot(E-0.78, nl[3]/nl[0], 'g:', linewidth=1, label='pull2')
 plt.plot(E-0.78, nl[4]/nl[0], 'y-', linewidth=1, label='pull3')
+plt.xlabel(r'$E_{\text{dep}}$ [\si{\MeV}]')
+plt.ylabel(r'$f_{\text{pull}}/f_{\text{nom}}$')
 plt.grid()
 plt.legend()
 
