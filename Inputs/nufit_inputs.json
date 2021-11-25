@@ -25,11 +25,11 @@
 		"241Pu" : 214.26
 	},
 	"energy_resolution" : {
-		"a" : 2.48e-2,
+		"a" : 3e-2,
 		"sigma_a" : 0.02e-2,
-		"b" : 0.82e-2,
+		"b" : 0.8e-2,
 		"sigma_b" : 0.01e-2,
-		"c" : 1.11e-2,
+		"c" : 0,
 		"sigma_c" : 0.04e-2
 	},
 	"detector" : {
@@ -38,7 +38,7 @@
 		"alpha_H" : 0.999885,
 		"m_H" : 1.0078250322,
 		"IBD_efficiency" : 0.822,
-		"daq_time" : 86400,
+		"daq_time" : 189345600,
 		"duty_cycle" : 0.917
 	},
 	"thermal_power" : 26.6,

@@ -17,7 +17,7 @@ from oscillation import OscillationProbability
 from spectrum import OscillatedSpectrum
 
 
-def plot_function(x_, y_, label_, styles, ylabel_, xlabel_=r'$E_{\nu}$ [\si{MeV}]', xlim=None, ylim=None, logx=False):
+def plot_function(x_, y_, label_, ylabel_, styles=None, xlabel_=r'$E_{\nu}$ [\si{MeV}]', xlim=None, ylim=None, logx=False):
     if len(x_) != len(y_):
         print("Error in plot_function: different lengths - skip plotting")
         return 1
@@ -28,6 +28,10 @@ def plot_function(x_, y_, label_, styles, ylabel_, xlabel_=r'$E_{\nu}$ [\si{MeV}
     fig = plt.figure(figsize=[8, 5.5])
     fig.subplots_adjust(left=0.09, right=0.97, top=0.95)
     ax_ = fig.add_subplot(111)
+    if styles is None:
+        styles = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+                  '#17becf', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+                  '#bcbd22', '#17becf']
     for i_ in np.arange(len(x_)):
         if not logx:
             ax_.plot(x_[i_], y_[i_], styles[i_], linewidth=1., label=label_[i_])
@@ -57,6 +61,8 @@ def plot_function(x_, y_, label_, styles, ylabel_, xlabel_=r'$E_{\nu}$ [\si{MeV}
 time_start = time.perf_counter_ns()
 
 f = open('Inputs/nufit_inputs.json')
+# f = open('Inputs/nominal_inputs.json')
+# f = open('Inputs/YB_inputs.json')
 inputs_json = json.load(f)
 
 # E = np.arange(1.806, 10.01, 0.01)  # in MeV
@@ -119,35 +125,45 @@ plot_function(x_=[E, E, E, E],
               ylabel_=r'(corr - nom)/nom [\%]', xlabel_=r'nu energy [MeV]', xlim=None, ylim=None)
 '''
 
-'''
+
 ### OSCILLATION PROBABILITY 
 prob = OscillationProbability(inputs_json)
-prob_N_v, prob_I_v = prob.eval_vacuum_prob(plot_this=False)
-prob_N_ve, prob_I_ve = prob.eval_vacuum_prob(E, plot_this=False)
+prob_N_v, prob_I_v = prob.eval_vacuum_prob(plot_this=True)
+# prob_N_ve, prob_I_ve = prob.eval_vacuum_prob(E, plot_this=False)
+
+xxx = np.arange(0.01, 500000, 1.)
+yyy = (prob_N_v-prob_I_v)/prob_N_v
+plot_function(x_=[xxx/1000.], y_=[yyy], label_=[r'NO-IO'], ylabel_=r'(NO-IO)/NO [\%]', styles=['k'], xlim=[0.04, 70],
+              xlabel_=r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]', logx=True)
 
 prob_N_m, prob_I_m = prob.eval_matter_prob(plot_this=False)
-prob_N_me, prob_I_me = prob.eval_matter_prob(E, plot_this=False)
+# prob_N_me, prob_I_me = prob.eval_matter_prob(E, plot_this=False)
 
-ax = plot_function(x_=[E, E], y_=[(prob_N_me-prob_N_ve)/prob_N_me*100., (prob_I_me-prob_I_ve)/prob_I_me*100.],
-                   label_=[r'NO', r'IO'], styles=['b-', 'r--'],
-                   ylabel_=r'$(P_{\text{mat}} - P_{\text{vac}}) / P_{\text{mat}}$ [\si{\percent}]',
-                   xlabel_=r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]', xlim=None, ylim=None)
-ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+xxx = np.arange(0.01, 500000, 1.)
+yyy = (prob_N_m-prob_I_m)/prob_N_m
+plot_function(x_=[xxx/1000.], y_=[yyy], label_=[r'NO-IO'], ylabel_=r'(NO-IO)/NO [\%] (in matter)', styles=['k'],
+              xlim=[0.04, 50], xlabel_=r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]', logx=True)
 
-ax1 = plot_function(x_=[np.arange(0.01, 500000, 1.)/1000, np.arange(0.01, 500000, 1.)/1000],
-                    y_=[(prob_N_m-prob_N_v)/prob_N_m*100., (prob_I_m-prob_I_v)/prob_I_m*100.],
-                    label_=[r'NO', r'IO'], styles=['b-', 'r--'],
-                    ylabel_=r'$(P_{\text{mat}} - P_{\text{vac}}) / P_{\text{mat}}$ [\si{\percent}]',
-                    xlabel_=r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]', xlim=[0.,40], ylim=[-1,4])
-ax1.axvline(1.806, 0, 1, color='k', linestyle=':')
-'''
+# ax = plot_function(x_=[E, E], y_=[(prob_N_me-prob_N_ve)/prob_N_me*100., (prob_I_me-prob_I_ve)/prob_I_me*100.],
+#                    label_=[r'NO', r'IO'], styles=['b-', 'r--'],
+#                    ylabel_=r'$(P_{\text{mat}} - P_{\text{vac}}) / P_{\text{mat}}$ [\si{\percent}]',
+#                    xlabel_=r'$E_{\nu}$ [\si[per-mode=symbol]{\MeV}]', xlim=None, ylim=None)
+# ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
+# ax1 = plot_function(x_=[np.arange(0.01, 500000, 1.)/1000, np.arange(0.01, 500000, 1.)/1000],
+#                     y_=[(prob_N_m-prob_N_v)/prob_N_m*100., (prob_I_m-prob_I_v)/prob_I_m*100.],
+#                     label_=[r'NO', r'IO'], styles=['b-', 'r--'],
+#                     ylabel_=r'$(P_{\text{mat}} - P_{\text{vac}}) / P_{\text{mat}}$ [\si{\percent}]',
+#                     xlabel_=r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]', xlim=[0.,40], ylim=[-1,4])
+# ax1.axvline(1.806, 0, 1, color='k', linestyle=':')
+
 
 print('\nOSCILLATED SPECTRUM\n')
 ### OSCILLATED SPECTRUM
 spectrum = OscillatedSpectrum(inputs_json)
-s_N, s_I = spectrum.osc_spectrum(E, plot_this=True, plot_un=False, runtime=True)
-a = spectrum.osc_spectrum_no(E, plot_this=True, plot_un=False, runtime=True, matter=False)
-b = spectrum.osc_spectrum_no(E, plot_this=True, plot_un=False, runtime=False)
+s_N, s_I = spectrum.osc_spectrum(E, plot_this=True, which_isospectrum='HM', plot_un=False, runtime=False, matter=False)
+# a = spectrum.osc_spectrum_no(E, plot_this=True, plot_un=False, runtime=True, matter=False)
+# b = spectrum.osc_spectrum_no(E, plot_this=True, plot_un=False, runtime=False)
 # s_N_m, s_I_m = spectrum.osc_spectrum(E, plot_this=False, plot_un=True, matter=True)
 
 # sres_N, sres_I = spectrum.resol_spectrum(E-0.78, matter=False, plot_this=False)
@@ -167,11 +183,34 @@ b = spectrum.osc_spectrum_no(E, plot_this=True, plot_un=False, runtime=False)
 #               ylabel_=r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]',
 #               xlabel_=r'$E_{\text{vis}}$ [\si{\MeV}]', xlim=None, ylim=None)
 
-r_list = pd.read_csv("Inputs/list_of_reactors.txt", sep=",",
-                     names=["baseline", "thermal_power", "name"], header=0)
+# r_list = pd.read_csv("Inputs/list_of_reactors.txt", sep=",",
+#                      names=["baseline", "thermal_power", "name"], header=0)
+# nn = len(r_list["baseline"])
+# ee = []
+# ss = []
+# for j_ in np.arange(nn):
+#     spectrum.set_baseline(r_list["baseline"][j_])
+#     spectrum.set_th_power(r_list["thermal_power"][j_])
+#     appo = spectrum.antinu_spectrum_no_osc(E)
+#     ee.append(E)
+#     ss.append(appo)
+#
+# ee1 = []
+# ss1 = []
+# for j_ in np.arange(nn):
+#     spectrum.set_baseline(r_list["baseline"][j_])
+#     spectrum.set_th_power(r_list["thermal_power"][j_])
+#     appo = spectrum.eval_vacuum_prob_no(E)
+#     ee1.append(E)
+#     ss1.append(appo)
 
-c = spectrum.osc_spectrum_no_multi(E, which_isospectrum='HM', bool_snf=False, bool_noneq=False, matter=False,
-                                   plot_sum=True, plot_baselines=True)
+# plot_function(x_=ee, y_=ss, label_=r_list["name"], ylabel_=r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]', xlim=[1.5,10])
+# plot_function(x_=ee1, y_=ss1, label_=r_list["name"], ylabel_=r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$', xlim=[1.5,10])
+
+# c, ssc = spectrum.osc_spectrum_sum_no(E, which_isospectrum='DYB', bool_snf=False, bool_noneq=False, matter=False,
+#                                       plot_sum=False, plot_baselines=False, runtime=False)
+# d, ssd = spectrum.resol_spectrum_sum_no(E-0.78, which_isospectrum='DYB', bool_snf=False, bool_noneq=False, matter=False,
+#                                         plot_sum=False, plot_baselines=False, runtime=False)
 
 elapsed_time = time.perf_counter_ns() - time_start
 elapsed_time = elapsed_time * 10 ** (-9)  # in seconds

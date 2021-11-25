@@ -17,6 +17,13 @@ from detector_response import DetectorResponse
 # - use DetectorResponse as parent class? --> move a b c in Detector Response --> DONE
 
 
+style = {
+    "NO": 'b',
+    "IO1": 'r',
+    "IO2": 'r--'
+}
+
+
 class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorResponse):
 
     def __init__(self, inputs_json_):
@@ -87,10 +94,10 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
             if plot_un:
                 plot_function(x_=[nu_energy_, nu_energy_], y_=[self.spectrum_unosc, self.osc_spect_no],
-                              label_=[r'Unoscillated spectrum', r'NO'], styles=['k', 'b'],
+                              label_=[r'Unoscillated spectrum', r'NO'], styles=['k', style["NO"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
             else:
-                plot_function(x_=[nu_energy_], y_=[self.osc_spect_no], label_=[r'NO'], styles=['b'],
+                plot_function(x_=[nu_energy_], y_=[self.osc_spect_no], label_=[r'NO'], styles=[style["NO"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
         return self.osc_spect_no
@@ -124,10 +131,10 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
             if plot_un:
                 plot_function(x_=[nu_energy_, nu_energy_], y_=[self.spectrum_unosc, self.osc_spect_io],
-                              label_=[r'Unoscillated spectrum', r'IO'], styles=['k', 'r'],
+                              label_=[r'Unoscillated spectrum', r'IO'], styles=['k', style["IO1"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
             else:
-                plot_function(x_=[nu_energy_], y_=[self.osc_spect_io], label_=[r'IO'], styles=['r'],
+                plot_function(x_=[nu_energy_], y_=[self.osc_spect_io], label_=[r'IO'], styles=[style["IO1"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
         return self.osc_spect_io
@@ -151,11 +158,12 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             if plot_un:
                 plot_function(x_=[nu_energy_, nu_energy_, nu_energy_],
                               y_=[self.spectrum_unosc, self.osc_spect_no, self.osc_spect_io],
-                              label_=[r'Unoscillated spectrum', r'NO', r'IO'], styles=['k', 'b', 'r--'],
+                              label_=[r'Unoscillated spectrum', r'NO', r'IO'], styles=['k', style["NO"], style["IO2"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
             else:
                 plot_function(x_=[nu_energy_, nu_energy_], y_=[self.osc_spect_no, self.osc_spect_io],
-                              label_=[r'NO', r'IO'], styles=['b', 'r--'], ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
+                              label_=[r'NO', r'IO'], styles=[style["NO"], style["IO2"]], ylabel_=ylabel_,
+                              xlim=[1.5, 10.5], ylim=None)
 
         return self.osc_spect_no, self.osc_spect_io
 
@@ -188,7 +196,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             if matter:
                 ylabel_ = ylabel_ + ' (in matter)'
 
-            plot_function(x_=[visible_energy_], y_=[self.resol_no], label_=[r'NO'], styles=['b'],
+            plot_function(x_=[visible_energy_], y_=[self.resol_no], label_=[r'NO'], styles=[style["NO"]],
                           ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]',
                           xlim=[1.5-1., 10.5-1.], ylim=None)
 
@@ -218,7 +226,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             if matter:
                 ylabel_ = ylabel_ + ' (in matter)'
 
-            plot_function(x_=[visible_energy_], y_=[self.resol_io], label_=[r'IO'], styles=['r'],
+            plot_function(x_=[visible_energy_], y_=[self.resol_io], label_=[r'IO'], styles=[style["IO1"]],
                           ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]',
                           xlim=[1.5-1., 10.5-1.], ylim=None)
 
@@ -243,14 +251,14 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                 ylabel_ = ylabel_ + ' (in matter)'
 
             plot_function(x_=[visible_energy_, visible_energy_], y_=[self.resol_no, self.resol_io],
-                          label_=[r'NO', r'IO'], styles=['b', 'r--'],
+                          label_=[r'NO', r'IO'], styles=[style["NO"], style["IO2"]],
                           ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]',
                           xlim=[1.5-1., 10.5-1.], ylim=None)
 
         return self.resol_no, self.resol_io
 
-    def osc_spectrum_no_multi(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
-                              bool_snf=True, bool_noneq=True, plot_sum=False, plot_baselines=False):
+    def osc_spectrum_sum_no(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                            bool_snf=True, bool_noneq=True, runtime=False, plot_sum=False, plot_baselines=False):
 
         self.get_reactor_list()
         nn = len(self.r_list["baseline"])
@@ -261,7 +269,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
             ReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
             OscillationProbability.set_baseline(self, self.r_list["baseline"][i_])
-            appo = self.osc_spectrum_no(nu_energy_, matter=matter, which_xsec=which_xsec,
+            appo = self.osc_spectrum_no(nu_energy_, matter=matter, which_xsec=which_xsec, runtime=runtime,
                                         which_isospectrum=which_isospectrum, bool_snf=bool_snf, bool_noneq=bool_noneq)
             ee.append(nu_energy_)
             ss.append(appo)
@@ -270,20 +278,70 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             print(ReactorSpectrum.get_th_power(self))
             print(OscillationProbability.get_baseline(self))
 
-        if matter:
-            ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}] (in matter)'
-        else:
-            ylabel_ = r'$S(\bar{\nu})$ [N$_{\nu}$/\si{s}/\si{\MeV}]'
-
         if plot_sum:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}]'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
             plot_function(x_=[nu_energy_], y_=[self.sum_spectra_no], label_=[r'NO - sum'], styles=['k'],
                           ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
         if plot_baselines:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}]'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
             plot_function(x_=ee, y_=ss, label_=self.r_list["name"], styles=None,
                           ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
-        return self.sum_spectra_no
+        return self.sum_spectra_no, ss
+
+    def resol_spectrum_sum_no(self, visible_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                              bool_snf=True, bool_noneq=True, runtime=False, plot_sum=False, plot_baselines=False):
+
+        self.get_reactor_list()
+        nn = len(self.r_list["baseline"])
+        ee = []
+        ss = []
+        self.sum_resol_no = 0.
+        for i_ in np.arange(nn):
+            ReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
+            ReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
+            OscillationProbability.set_baseline(self, self.r_list["baseline"][i_])
+            appo = self.resol_spectrum_no(visible_energy_, matter=matter, which_xsec=which_xsec, runtime=runtime,
+                                          which_isospectrum=which_isospectrum, bool_snf=bool_snf, bool_noneq=bool_noneq)
+            ee.append(visible_energy_)
+            ss.append(appo)
+            self.sum_resol_no += appo
+            print(ReactorSpectrum.get_baseline(self))
+            print(ReactorSpectrum.get_th_power(self))
+            print(OscillationProbability.get_baseline(self))
+
+        if plot_sum:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}]'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
+            plot_function(x_=[visible_energy_], y_=[self.sum_resol_no], label_=[r'NO - sum'], styles=['k'],
+                          ylabel_=ylabel_, xlim=[1.5-1, 10.5-1], ylim=None)
+
+        if plot_baselines:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}]'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
+            plot_function(x_=ee, y_=ss, label_=self.r_list["name"], styles=None,
+                          ylabel_=ylabel_, xlim=[1.5-1, 10.5-1], ylim=None)
+
+        return self.sum_resol_no, ss
 
     ###  TODO:   REVISION NEEDED
     def sum_old(self, baselines, powers, E, normalize=False, plot_sum=False, plot_baselines=False):
@@ -417,7 +475,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ax.plot(E, self.sum_resol_no, 'b', linewidth=1., label='NO')
             ax.plot(E, self.sum_resol_io, 'r--', linewidth=1., label='IO')
             ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
-            ax.set_xlim(0.5,9.5)
+            ax.set_xlim(0.5, 9.5)
             ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
             ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
             ax.set_ylim(-5.e-5, 4.e-3)

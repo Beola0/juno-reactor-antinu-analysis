@@ -1,11 +1,11 @@
 {
 	"oscillationParams" : {
 		"sin2_12" : 0.307,
-		"deltam_21" : 7.53e-5,
-		"sin2_13_N" : 0.0218,
-		"deltam_31_N" : 2.528e-3,
-		"sin2_13_I" : 0.0218,
-		"deltam_32_I" : -2.546e-3
+		"deltam_21" : 7.54e-5,
+		"sin2_13_N" : 0.0241,
+		"deltam_31_N" : 2.468e-3,
+		"sin2_13_I" : 0.0241,
+		"deltam_32_I" : -2.458e-3
 	},
 	"matter_effect" : {
 		"matter_density" : 2.45,

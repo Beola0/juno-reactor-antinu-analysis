@@ -14,6 +14,13 @@ import math
 # - add nuisances: for matter density
 
 
+style = {
+    "NO": 'b',
+    "IO1": 'r',
+    "IO2": 'r--'
+}
+
+
 ### survival probability
 class OscillationProbability:
 
@@ -139,11 +146,11 @@ class OscillationProbability:
         if plot_this:
             ylabel = r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
             if nu_energy is not None:
-                plot_function(x_=[nu_energy], y_=[self.vacuum_prob_no], label_=[r'NO'], styles=['b'],
+                plot_function(x_=[nu_energy], y_=[self.vacuum_prob_no], label_=[r'NO'], styles=[style["NO"]],
                               ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
             else:
                 xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
-                plot_function(x_=[x/1000.], y_=[self.vacuum_prob_no], label_=[r'NO'], styles=['b'],
+                plot_function(x_=[x/1000.], y_=[self.vacuum_prob_no], label_=[r'NO'], styles=[style["NO"]],
                               ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.vacuum_prob_no
@@ -169,11 +176,11 @@ class OscillationProbability:
         if plot_this:
             ylabel = r'$P (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
             if nu_energy is not None:
-                plot_function(x_=[nu_energy], y_=[self.vacuum_prob_io], label_=[r'IO'], styles=['r'],
+                plot_function(x_=[nu_energy], y_=[self.vacuum_prob_io], label_=[r'IO'], styles=[style["IO1"]],
                               ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
             else:
                 xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
-                plot_function(x_=[x / 1000.], y_=[self.vacuum_prob_io], label_=[r'IO'], styles=['r'],
+                plot_function(x_=[x / 1000.], y_=[self.vacuum_prob_io], label_=[r'IO'], styles=[style["IO1"]],
                               ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.vacuum_prob_io
@@ -197,7 +204,7 @@ class OscillationProbability:
                 plot_function(x_=[x / 1000., x / 1000.],
                               y_=[self.vacuum_prob_no, self.vacuum_prob_io],
                               label_=[r'NO', r'IO'],
-                              styles=['b', 'r--'],
+                              styles=[style["NO"], style["IO2"]],
                               ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.vacuum_prob_no, self.vacuum_prob_io
@@ -248,11 +255,11 @@ class OscillationProbability:
         if plot_this:
             ylabel = r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
             if nu_energy is not None:
-                plot_function(x_=[nu_energy], y_=[self.matter_prob_no], label_=[r'NO'], styles=['b'],
+                plot_function(x_=[nu_energy], y_=[self.matter_prob_no], label_=[r'NO'], styles=[style["NO"]],
                               ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
             else:
                 xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
-                plot_function(x_=[x / 1000.], y_=[self.matter_prob_no], label_=[r'NO'], styles=['b'],
+                plot_function(x_=[x / 1000.], y_=[self.matter_prob_no], label_=[r'NO'], styles=[style["NO"]],
                               ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.matter_prob_no
@@ -299,11 +306,11 @@ class OscillationProbability:
         if plot_this:
             ylabel = r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
             if nu_energy is not None:
-                plot_function(x_=[nu_energy], y_=[self.matter_prob_io], label_=[r'IO'], styles=['r'],
+                plot_function(x_=[nu_energy], y_=[self.matter_prob_io], label_=[r'IO'], styles=[style["IO1"]],
                               ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
             else:
                 xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
-                plot_function(x_=[x / 1000.], y_=[self.matter_prob_io], label_=[r'IO'], styles=['r'],
+                plot_function(x_=[x / 1000.], y_=[self.matter_prob_io], label_=[r'IO'], styles=[style["IO1"]],
                               ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.matter_prob_io
@@ -317,13 +324,13 @@ class OscillationProbability:
             ylabel = r'$P_{\text{mat}} (\bar{\nu}_{e} \rightarrow \bar{\nu}_{e})$'
             if nu_energy is not None:
                 plot_function(x_=[nu_energy, nu_energy], y_=[self.matter_prob_no, self.matter_prob_io],
-                              label_=[r'NO', r'IO'], styles=['b', 'r--'],
+                              label_=[r'NO', r'IO'], styles=[style["NO"], style["IO2"]],
                               ylabel_=ylabel, xlim=[1.5, 10.5], ylim=[0.08, 1.02])
             else:
                 x = np.arange(0.01, 500000, 1.)  # [m/MeV]
                 xlabel = r'$L / E_{\nu}$ [\si[per-mode=symbol]{\kilo\meter\per\MeV}]'
                 plot_function(x_=[x / 1000., x / 1000.], y_=[self.matter_prob_no, self.matter_prob_io],
-                              label_=[r'noO', r'IO'], styles=['b', 'r--'],
+                              label_=[r'NO', r'IO'], styles=[style["NO"], style["IO2"]],
                               ylabel_=ylabel, xlabel_=xlabel, xlim=[0.04, 35], ylim=[0.08, 1.02], logx=True)
 
         return self.matter_prob_no, self.matter_prob_io
