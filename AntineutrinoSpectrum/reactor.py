@@ -15,6 +15,7 @@ import sys
 # - move IBD part to DetectorResponse (??)
 # - add SNF and NonEq contributions --> DONE
 # - add nuisances: for SNF and NonEq
+# - check interpolation and extrapolation methods for DYB-based reactor model
 
 
 class ReactorSpectrum:

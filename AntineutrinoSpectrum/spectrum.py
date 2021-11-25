@@ -15,6 +15,7 @@ from detector_response import DetectorResponse
 # - initialise with .json file --> DONE
 # - include sum over more reactors in single method
 # - use DetectorResponse as parent class? --> move a b c in Detector Response --> DONE
+# - include backgrounds
 
 
 style = {
@@ -44,15 +45,13 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.osc_spect_io = 0.
         self.resol_no = 0.
         self.resol_io = 0.
-        self.sum_spectra_no = 0.
-        self.sum_spectra_io = 0.
         self.sum_resol_no = 0.
         self.sum_resol_io = 0.
 
         self.path_to_reactor_list = inputs_json_["reactor_list"]
         self.r_list = pd.DataFrame()
-        self.baselines = []
-        self.powers = []
+        # self.baselines = []
+        # self.powers = []
 
     # # TODO: need adjustments
     # def set_L_P_distribution(self, baselines, powers):
@@ -66,23 +65,53 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         return self.r_list
 
     def osc_spectrum_no(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
-                        bool_snf=True, bool_noneq=True, runtime=False, plot_this=False, plot_un=False):
-
-        ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
-                                               which_xsec=which_xsec, which_isospectrum=which_isospectrum,
-                                               bool_snf=bool_snf, bool_noneq=bool_noneq)
-        if matter:
-            if self.verbose:
-                print("\nevaluating oscillation probability in matter - N")
-            prob = OscillationProbability.eval_matter_prob_no(self, nu_energy_)
+                        bool_snf=True, bool_noneq=True, runtime=False,
+                        plot_this=False, plot_un=False, plot_singles=False):
+        ee = []
+        ss = []
+        ssun = 0.
+        self.osc_spect_no = 0.
+        if self.path_to_reactor_list is not None:
+            self.get_reactor_list()
+            nn = len(self.r_list["baseline"])
+            for i_ in np.arange(nn):
+                ReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
+                ReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
+                OscillationProbability.set_baseline(self, self.r_list["baseline"][i_])
+                ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                       which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                                                       bool_snf=bool_snf, bool_noneq=bool_noneq)
+                if matter:
+                    if self.verbose:
+                        print("\nevaluating oscillation probability in matter - N")
+                    prob = OscillationProbability.eval_matter_prob_no(self, nu_energy_)
+                else:
+                    if self.verbose:
+                        print("\nevaluating oscillation probability in vacuum - N")
+                    prob = OscillationProbability.eval_vacuum_prob_no(self, nu_energy_)
+                appo = self.spectrum_unosc * prob
+                if runtime:
+                    appo = appo * self.IBD_efficiency * self.daq_time * self.duty_cycle
+                ee.append(nu_energy_)
+                ss.append(appo)
+                ssun += self.spectrum_unosc
+                self.osc_spect_no += appo
         else:
-            if self.verbose:
-                print("\nevaluating oscillation probability in vacuum - N")
-            prob = OscillationProbability.eval_vacuum_prob_no(self, nu_energy_)
-
-        self.osc_spect_no = self.spectrum_unosc * prob
-        if runtime:
-            self.osc_spect_no = self.osc_spect_no * self.IBD_efficiency * self.daq_time * self.duty_cycle
+            ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                   which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                                                   bool_snf=bool_snf, bool_noneq=bool_noneq)
+            ssun = self.spectrum_unosc
+            if matter:
+                if self.verbose:
+                    print("\nevaluating oscillation probability in matter - N")
+                prob = OscillationProbability.eval_matter_prob_no(self, nu_energy_)
+            else:
+                if self.verbose:
+                    print("\nevaluating oscillation probability in vacuum - N")
+                prob = OscillationProbability.eval_vacuum_prob_no(self, nu_energy_)
+            self.osc_spect_no = self.spectrum_unosc * prob
+            if runtime:
+                self.osc_spect_no = self.osc_spect_no * self.IBD_efficiency * self.daq_time * self.duty_cycle
 
         if plot_this:
             if runtime:
@@ -91,35 +120,74 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                 ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
             if matter:
                 ylabel_ = ylabel_ + ' (in matter)'
-
             if plot_un:
-                plot_function(x_=[nu_energy_, nu_energy_], y_=[self.spectrum_unosc, self.osc_spect_no],
+                plot_function(x_=[nu_energy_, nu_energy_], y_=[ssun, self.osc_spect_no],
                               label_=[r'Unoscillated spectrum', r'NO'], styles=['k', style["NO"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
             else:
                 plot_function(x_=[nu_energy_], y_=[self.osc_spect_no], label_=[r'NO'], styles=[style["NO"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
-        return self.osc_spect_no
+        if plot_singles:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}] - NO'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}] - NO'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
+            plot_function(x_=ee, y_=ss, label_=self.r_list["name"], styles=None,
+                          ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
+
+        return self.osc_spect_no, ss
 
     def osc_spectrum_io(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
-                        bool_snf=True, bool_noneq=True, runtime=False, plot_this=False, plot_un=False):
-
-        ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
-                                               which_xsec=which_xsec, which_isospectrum=which_isospectrum,
-                                               bool_snf=bool_snf, bool_noneq=bool_noneq)
-        if matter:
-            if self.verbose:
-                print("\nevaluating oscillation probability in matter - I")
-            prob = OscillationProbability.eval_matter_prob_io(self, nu_energy_)
+                        bool_snf=True, bool_noneq=True, runtime=False,
+                        plot_this=False, plot_un=False, plot_singles=False):
+        ee = []
+        ss = []
+        ssun = 0.
+        self.osc_spect_io = 0.
+        if self.path_to_reactor_list is not None:
+            self.get_reactor_list()
+            nn = len(self.r_list["baseline"])
+            for i_ in np.arange(nn):
+                ReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
+                ReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
+                OscillationProbability.set_baseline(self, self.r_list["baseline"][i_])
+                ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                       which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                                                       bool_snf=bool_snf, bool_noneq=bool_noneq)
+                if matter:
+                    if self.verbose:
+                        print("\nevaluating oscillation probability in matter - I")
+                    prob = OscillationProbability.eval_matter_prob_io(self, nu_energy_)
+                else:
+                    if self.verbose:
+                        print("\nevaluating oscillation probability in vacuum - I")
+                    prob = OscillationProbability.eval_vacuum_prob_io(self, nu_energy_)
+                appo = self.spectrum_unosc * prob
+                if runtime:
+                    appo = appo * self.IBD_efficiency * self.daq_time * self.duty_cycle
+                ee.append(nu_energy_)
+                ss.append(appo)
+                ssun += self.spectrum_unosc
+                self.osc_spect_io += appo
         else:
-            if self.verbose:
-                print("\nevaluating oscillation probability in vacuum - I")
-            prob = OscillationProbability.eval_vacuum_prob_io(self, nu_energy_)
-
-        self.osc_spect_io = self.spectrum_unosc * prob
-        if runtime:
-            self.osc_spect_io = self.osc_spect_io * self.IBD_efficiency * self.daq_time * self.duty_cycle
+            ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                   which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                                                   bool_snf=bool_snf, bool_noneq=bool_noneq)
+            ssun = self.spectrum_unosc
+            if matter:
+                if self.verbose:
+                    print("\nevaluating oscillation probability in matter - I")
+                prob = OscillationProbability.eval_matter_prob_io(self, nu_energy_)
+            else:
+                if self.verbose:
+                    print("\nevaluating oscillation probability in vacuum - I")
+                prob = OscillationProbability.eval_vacuum_prob_io(self, nu_energy_)
+            self.osc_spect_io = self.spectrum_unosc * prob
+            if runtime:
+                self.osc_spect_io = self.osc_spect_io * self.IBD_efficiency * self.daq_time * self.duty_cycle
 
         if plot_this:
             if runtime:
@@ -128,16 +196,25 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                 ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
             if matter:
                 ylabel_ = ylabel_ + ' (in matter)'
-
             if plot_un:
-                plot_function(x_=[nu_energy_, nu_energy_], y_=[self.spectrum_unosc, self.osc_spect_io],
+                plot_function(x_=[nu_energy_, nu_energy_], y_=[ssun, self.osc_spect_io],
                               label_=[r'Unoscillated spectrum', r'IO'], styles=['k', style["IO1"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
             else:
                 plot_function(x_=[nu_energy_], y_=[self.osc_spect_io], label_=[r'IO'], styles=[style["IO1"]],
                               ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
 
-        return self.osc_spect_io
+        if plot_singles:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}] - IO'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}] - IO'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
+            plot_function(x_=ee, y_=ss, label_=self.r_list["name"], styles=None,
+                          ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
+
+        return self.osc_spect_io, ss
 
     def osc_spectrum(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
                      bool_snf=True, bool_noneq=True, runtime=False, plot_this=False, plot_un=False):
@@ -155,15 +232,16 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             if matter:
                 ylabel_ = ylabel_ + ' (in matter)'
 
-            if plot_un:
-                plot_function(x_=[nu_energy_, nu_energy_, nu_energy_],
-                              y_=[self.spectrum_unosc, self.osc_spect_no, self.osc_spect_io],
-                              label_=[r'Unoscillated spectrum', r'NO', r'IO'], styles=['k', style["NO"], style["IO2"]],
-                              ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
-            else:
-                plot_function(x_=[nu_energy_, nu_energy_], y_=[self.osc_spect_no, self.osc_spect_io],
-                              label_=[r'NO', r'IO'], styles=[style["NO"], style["IO2"]], ylabel_=ylabel_,
-                              xlim=[1.5, 10.5], ylim=None)
+            # TODO: can I plot unoscillated spectrum as well? how do I get it?
+            # if plot_un:
+            #     plot_function(x_=[nu_energy_, nu_energy_, nu_energy_],
+            #                   y_=[self.spectrum_unosc, self.osc_spect_no, self.osc_spect_io],
+            #                   label_=[r'Unoscillated spectrum', r'NO', r'IO'], styles=['k', style["NO"], style["IO2"]],
+            #                   ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
+            # else:
+            plot_function(x_=[nu_energy_, nu_energy_], y_=[self.osc_spect_no, self.osc_spect_io],
+                          label_=[r'NO', r'IO'], styles=[style["NO"], style["IO2"]], ylabel_=ylabel_,
+                          xlim=[1.5, 10.5], ylim=None)
 
         return self.osc_spect_no, self.osc_spect_io
 
@@ -257,49 +335,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
         return self.resol_no, self.resol_io
 
-    def osc_spectrum_sum_no(self, nu_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
-                            bool_snf=True, bool_noneq=True, runtime=False, plot_sum=False, plot_baselines=False):
-
-        self.get_reactor_list()
-        nn = len(self.r_list["baseline"])
-        ee = []
-        ss = []
-        self.sum_spectra_no = 0.
-        for i_ in np.arange(nn):
-            ReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
-            ReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
-            OscillationProbability.set_baseline(self, self.r_list["baseline"][i_])
-            appo = self.osc_spectrum_no(nu_energy_, matter=matter, which_xsec=which_xsec, runtime=runtime,
-                                        which_isospectrum=which_isospectrum, bool_snf=bool_snf, bool_noneq=bool_noneq)
-            ee.append(nu_energy_)
-            ss.append(appo)
-            self.sum_spectra_no += appo
-            print(ReactorSpectrum.get_baseline(self))
-            print(ReactorSpectrum.get_th_power(self))
-            print(OscillationProbability.get_baseline(self))
-
-        if plot_sum:
-            if runtime:
-                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}]'
-            else:
-                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
-            if matter:
-                ylabel_ = ylabel_ + ' (in matter)'
-            plot_function(x_=[nu_energy_], y_=[self.sum_spectra_no], label_=[r'NO - sum'], styles=['k'],
-                          ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
-
-        if plot_baselines:
-            if runtime:
-                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}]'
-            else:
-                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
-            if matter:
-                ylabel_ = ylabel_ + ' (in matter)'
-            plot_function(x_=ee, y_=ss, label_=self.r_list["name"], styles=None,
-                          ylabel_=ylabel_, xlim=[1.5, 10.5], ylim=None)
-
-        return self.sum_spectra_no, ss
-
+    # TODO: put this in methods above
     def resol_spectrum_sum_no(self, visible_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
                               bool_snf=True, bool_noneq=True, runtime=False, plot_sum=False, plot_baselines=False):
 
@@ -344,158 +380,6 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         return self.sum_resol_no, ss
 
     ###  TODO:   REVISION NEEDED
-    def sum_old(self, baselines, powers, E, normalize=False, plot_sum=False, plot_baselines=False):
-
-        if len(baselines) != len(powers):
-            print('Error: length of baselines array is different from length of powers array.')
-            return -1
-
-        N_cores = len(baselines)
-        self.sum_spectra_no = np.zeros(len(E))
-        self.sum_spectra_io = np.zeros(len(E))
-
-        loc = plticker.MultipleLocator(base=2.0)
-        loc1 = plticker.MultipleLocator(base=0.5)
-
-        if plot_baselines:
-            fig_b = plt.figure(figsize=[10.5, 6.5])
-            # fig_b = plt.figure()
-            ax_b = fig_b.add_subplot(111)
-            fig_b.subplots_adjust(left=0.07, right=0.97, top=0.96, bottom=0.10)
-
-        for n_ in np.arange(0, N_cores):
-            self.baseline = baselines[n_]
-            self.osc_spectrum(E, 0, normalize=True)
-            self.sum_spectra_no = self.sum_spectra_no \
-                                 + self.norm_osc_spect_no * powers[n_] / math.pow(baselines[n_], 2)
-            self.sum_spectra_io = self.sum_spectra_io \
-                                 + self.norm_osc_spect_io * powers[n_] / math.pow(baselines[n_], 2)
-            if plot_baselines:
-                ax_b.plot(E, self.norm_osc_spect_no, linewidth=1., label=r'L = %.2f \si{\km}' % baselines[n_])
-
-        if plot_baselines:
-            # ax_b.set_title(r'Antineutrino spectra at different baselines (NO)')
-            ax_b.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax_b.set_xlim(1.5, 10.5)
-            ax_b.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax_b.set_ylim(-0.01, 0.61)
-            ax_b.xaxis.set_major_locator(loc)
-            ax_b.xaxis.set_minor_locator(loc1)
-            ax_b.tick_params('both', direction='out', which='both')
-            ax_b.legend()
-            ax_b.grid(alpha=0.65)
-            # fig_b.savefig('SpectrumPlots/baselines.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/baselines.pdf')
-
-        if normalize:
-            norm_no = integrate.simps(self.sum_spectra_no, E)
-            norm_io = integrate.simps(self.sum_spectra_io, E)
-            self.sum_spectra_no = self.sum_spectra_no / norm_no
-            self.sum_spectra_io = self.sum_spectra_io / norm_io
-
-        if plot_sum:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            fig.subplots_adjust(left=0.12, right=0.96, top=0.95)
-            ax.plot(E, self.sum_spectra_no, 'b', linewidth=1., label='NO')
-            ax.plot(E, self.sum_spectra_io, 'r--', linewidth=1., label='IO')
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_xlim(1.5, 10.5)
-            ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax.set_ylim(-5.e-5, 4.e-3)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            if normalize:
-                ax.ticklabel_format(axis='y', style='plain')
-                ax.set_ylim(-0.005, 0.305)
-            # ax.set_title(r'Antineutrino spectra with true baseline distribution')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            # fig.savefig('SpectrumPlots/sum.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/sum.pdf')
-
-        # set baseline to default ideal value
-        self.baseline = 52.5
-
-        return self.sum_spectra_no, self.sum_spectra_io
-
-    def sum_resol(self, baselines, powers, E, a, b, normalize=False, plot_sum=False, plot_baselines=False):
-
-        if len(baselines) != len(powers):
-            print('Error: length of baselines array is different from length of powers array.')
-            return -1
-
-        N_cores = len(baselines)
-        self.sum_resol_no = np.zeros(len(E))
-        self.sum_resol_io = np.zeros(len(E))
-
-        loc = plticker.MultipleLocator(base=2.0)
-        loc1 = plticker.MultipleLocator(base=0.5)
-
-        if plot_baselines:
-            fig_b = plt.figure(figsize=[10.5, 6.5])
-            ax_b = fig_b.add_subplot(111)
-            fig_b.subplots_adjust(left=0.07, right=0.97, top=0.96, bottom=0.10)
-
-        for n_ in np.arange(0, N_cores):
-            self.baseline = baselines[n_]
-            self.resol_spectrum(E, a, b, 0, normalize=True)
-            self.sum_resol_no = self.sum_resol_no + self.resol_no * powers[n_] / math.pow(baselines[n_], 2)
-            self.sum_resol_io = self.sum_resol_io + self.resol_io * powers[n_] / math.pow(baselines[n_], 2)
-
-            if plot_baselines:
-                ax_b.plot(E, self.resol_no, linewidth=1., label=r'L = %.2f \si{\km}' % baselines[n_])
-
-        if plot_baselines:
-            # ax_b.set_title(r'Antineutrino spectra at different baselines (NO)' + '\nwith energy resolution')
-            ax_b.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
-            ax_b.set_xlim(0.5, 9.5)
-            ax_b.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax_b.set_ylim(-0.01, 0.61)
-            ax_b.xaxis.set_major_locator(loc)
-            ax_b.xaxis.set_minor_locator(loc1)
-            ax_b.tick_params('both', direction='out', which='both')
-            ax_b.legend()
-            ax_b.grid(alpha=0.65)
-            # fig_b.savefig('SpectrumPlots/resol_baselines.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/resol_baselines.pdf')
-
-        if normalize:
-            norm_no = integrate.simps(self.sum_resol_no, E - 0.8)
-            norm_io = integrate.simps(self.sum_resol_io, E - 0.8)
-            self.sum_resol_no = self.sum_resol_no / norm_no
-            self.sum_resol_io = self.sum_resol_io / norm_io
-
-        if plot_sum:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            fig.subplots_adjust(left=0.12, right=0.96, top=0.95)
-            ax.plot(E, self.sum_resol_no, 'b', linewidth=1., label='NO')
-            ax.plot(E, self.sum_resol_io, 'r--', linewidth=1., label='IO')
-            ax.set_xlabel(r'$E_{\text{vis}}$ [\si{MeV}]')
-            ax.set_xlim(0.5, 9.5)
-            ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax.set_ylim(-5.e-5, 4.e-3)
-            if normalize:
-                ax.ticklabel_format(axis='y', style='plain')
-                ax.set_ylim(-0.005, 0.305)
-            # ax.set_title(
-            #     r'Antineutrino spectra with true baseline distribution' + '\nwith energy resolution (\SI{3}{\percent} at \SI{1}{\MeV})')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # fig.savefig('SpectrumPlots/resol_sum.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/resol_sum.pdf')
-
-        # set baseline to default ideal value
-        self.baseline = 52.5
-
-        return self.sum_resol_no, self.sum_resol_io
 
     def eval_no(self, E, t12, m21, t13, m3l):
 
