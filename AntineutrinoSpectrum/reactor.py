@@ -138,7 +138,7 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_snf_ratio(self, nu_energy_):
 
-        input_ = pd.read_csv("Inputs/SNF_FluxRatio.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/SNF_FluxRatio.csv", sep=",",
                              names=["nu_energy", "snf_ratio"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["snf_ratio"])
@@ -149,7 +149,7 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_noneq_ratio(self, nu_energy_):
 
-        input_ = pd.read_csv("Inputs/NonEq_FluxRatio.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/NonEq_FluxRatio.csv", sep=",",
                              names=["nu_energy", "noneq_ratio"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["noneq_ratio"])
@@ -359,7 +359,7 @@ class ReactorSpectrum:
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.csv", sep=",",
                              names=["nu_energy", "cross_section"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
@@ -378,7 +378,7 @@ class ReactorSpectrum:
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.csv", sep=",",
                              names=["nu_energy", "cross_section"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
