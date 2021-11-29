@@ -1,19 +1,21 @@
-import matplotlib.pyplot as plt
-import matplotlib.ticker as plticker
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 import math
 import sys
+from plot import plot_function
+
 
 # TODO:
 # - initialize class with .json file with fission fractions --> DONE
 # - create spectrum from inputs, like DYB spectrum --> DONE
-# - remove part for plotting
+# - remove part for plotting --> improved, DONE
 # - add methods to change fission fractions --> DONE
-# - move IBD part to DetectorResponse (??)
+# - move IBD part to DetectorResponse (???)
 # - add SNF and NonEq contributions --> DONE
-# - add nuisances: for matter density, SNF and NonEq
+# - add nuisances: for SNF and NonEq
+# - check interpolation and extrapolation methods for DYB-based reactor model
+# - correct NonEq for DYB model
 
 
 class ReactorSpectrum:
@@ -33,6 +35,7 @@ class ReactorSpectrum:
         self.thermal_power = inputs_json_["thermal_power"]
         self.baseline = inputs_json_["baseline"]
 
+        self.verbose = inputs_json_["verbose"]
         self.inputs_json = inputs_json_
 
         self.iso_spectrum = 0.
@@ -43,40 +46,40 @@ class ReactorSpectrum:
         self.spectrum_unosc = 0.
         self.proton_number = 0.
         self.snf = 0.
-        self.bool_snf = False
         self.noneq = 0.
-        self.bool_noneq = False
 
+        self.bool_snf = False
+        self.bool_noneq = False
         self.which_xsec = ''
         self.which_isospectrum = ''
-        
+
     def set_fission_fractions(self, f235u_, f239pu_, f238u_, f241pu_):
         self.fiss_frac_235u = f235u_
         self.fiss_frac_239pu = f239pu_
         self.fiss_frac_238u = f238u_
         self.fiss_frac_241pu = f241pu_
-        
+
     def set_f235u(self, f235u_):
         self.fiss_frac_235u = f235u_
-        
+
     def set_f238u(self, f238u_):
         self.fiss_frac_238u = f238u_
 
     def set_f239pu(self, f239pu_):
         self.fiss_frac_239pu = f239pu_
-        
+
     def set_f241pu(self, f241pu_):
         self.fiss_frac_241pu = f241pu_
-        
+
     def get_f235u(self):
         return self.fiss_frac_235u
-        
+
     def get_f238u(self):
         return self.fiss_frac_238u
 
     def get_f239pu(self):
         return self.fiss_frac_239pu
-        
+
     def get_f241pu(self):
         return self.fiss_frac_241pu
 
@@ -133,7 +136,7 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_snf_ratio(self, nu_energy_):
 
-        input_ = pd.read_csv("Inputs/SNF_FluxRatio.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/SNF_FluxRatio.csv", sep=",",
                              names=["nu_energy", "snf_ratio"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["snf_ratio"])
@@ -144,7 +147,7 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_noneq_ratio(self, nu_energy_):
 
-        input_ = pd.read_csv("Inputs/NonEq_FluxRatio.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/NonEq_FluxRatio.csv", sep=",",
                              names=["nu_energy", "noneq_ratio"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["noneq_ratio"])
@@ -155,7 +158,8 @@ class ReactorSpectrum:
     def isotopic_spectrum_vogel(self, nu_energy_, plot_this=False):
 
         self.which_isospectrum = 'V'
-        print("\nUsing Vogel isotopic spectra")
+        if self.verbose:
+            print("\nUsing Vogel isotopic spectra")
 
         ### params taken from Vogel, Engel, PRD 39-11 pp 3378, 1989
         ### exponential of a polynomial of second order
@@ -172,37 +176,20 @@ class ReactorSpectrum:
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.iso_spectrum, 'k', linewidth=1.5, label='Total')
-            # ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            # ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            # ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            # ax.plot(nu_energy_, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.plot(nu_energy_, u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            ax.plot(nu_energy_, pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)'
+            plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
+                          y_=[self.iso_spectrum, u235, pu239, u238, pu241],
+                          label_=['Total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu'],
+                          styles=['k', 'b--', 'r-.', 'g:', 'y'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
 
     def isotopic_spectrum_hubermueller(self, nu_energy_, plot_this=False):
 
         self.which_isospectrum = 'HM'
-        print("\nUsing Huber+Mueller isotopic spectra")
+        if self.verbose:
+            print("\nUsing Huber+Mueller isotopic spectra")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for others
         ### exponential of a polynomial of fifth order
@@ -219,37 +206,20 @@ class ReactorSpectrum:
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.iso_spectrum, 'k', linewidth=1.5, label='Total')
-            # ax.plot(nu_energy_, self.f235u * u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            # ax.plot(nu_energy_, self.f239pu * pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            # ax.plot(nu_energy_, self.f238u * u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            # ax.plot(nu_energy_, self.f241pu * pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.plot(nu_energy_, u235, 'b--', linewidth=1.5, label=r'$^{235}$U')
-            ax.plot(nu_energy_, pu239, 'r-.', linewidth=1.5, label=r'$^{239}$Pu')
-            ax.plot(nu_energy_, u238, 'g:', linewidth=1.5, label=r'$^{238}$U')
-            ax.plot(nu_energy_, pu241, 'y', linewidth=1.5, label=r'$^{241}$Pu')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)'
+            plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
+                          y_=[self.iso_spectrum, u235, pu239, u238, pu241],
+                          label_=['Total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu'],
+                          styles=['k', 'b--', 'r-.', 'g:', 'y'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
 
     def isotopic_spectrum_DYB(self, nu_energy_, plot_this=False):
 
         self.which_isospectrum = 'DYB'
-        print("\nUsing DYB isotopic spectra (default)")
+        if self.verbose:
+            print("\nUsing DYB isotopic spectra (default)")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for 241Pu
         params_u238 = [4.833e-1, 1.927e-1, -1.283e-1, -6.762e-3, 2.233e-3, -1.536e-4]
@@ -280,25 +250,12 @@ class ReactorSpectrum:
         s_combo = interp1d(unfolded_pu_combo["bin_center"], unfolded_pu_combo["isotopic_spectrum"])
 
         self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
-                            + df_238 * u238 + (df_241 - 0.183*df_239) * pu241
+                            + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.iso_spectrum, 'k', linewidth=1.5, label='Total')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)'
+            plot_function(x_=[nu_energy_], y_=[self.iso_spectrum], label_=['Total'], styles=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.iso_spectrum
 
@@ -306,17 +263,16 @@ class ReactorSpectrum:
 
         const = 6.241509e21
 
-        if self.which_isospectrum != which_isospectrum:
-            if which_isospectrum == 'V':
-                self.isotopic_spectrum_vogel(nu_energy_)
-            elif which_isospectrum == 'HM':
-                self.isotopic_spectrum_hubermueller(nu_energy_)
-            elif which_isospectrum == 'DYB':
-                self.isotopic_spectrum_DYB(nu_energy_)
-            else:
-                print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                      "in reactor_spectrum function, ReactorSpectrum class.")
-                sys.exit()
+        if which_isospectrum == 'V':
+            self.isotopic_spectrum_vogel(nu_energy_)
+        elif which_isospectrum == 'HM':
+            self.isotopic_spectrum_hubermueller(nu_energy_)
+        elif which_isospectrum == 'DYB':
+            self.isotopic_spectrum_DYB(nu_energy_)
+        else:
+            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  "in reactor_spectrum function, ReactorSpectrum class.")
+            sys.exit()
 
         en_per_fiss = self.fiss_frac_235u * self.fiss_en_235u + self.fiss_frac_239pu * self.fiss_en_239pu \
                       + self.fiss_frac_238u * self.fiss_en_238u + self.fiss_frac_241pu * self.fiss_en_241pu
@@ -324,49 +280,37 @@ class ReactorSpectrum:
         self.react_spectrum = self.thermal_power / en_per_fiss * self.iso_spectrum * const
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            # fig.subplots_adjust(left=0.11, right=0.96, top=0.95)
-            ax.plot(nu_energy_, self.react_spectrum, 'k', linewidth=1.5, label='Reactor spectrum')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]'
+            plot_function(x_=[nu_energy_], y_=[self.react_spectrum], label_=['Reactor spectrum'], styles=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.react_spectrum
 
     def reactor_flux_no_osc(self, nu_energy_, which_isospectrum='HM',
                             bool_snf=False, bool_noneq=False, plot_this=False):
 
-        den = 4. * math.pi * np.power(self.baseline*1.e5, 2)
+        den = 4. * math.pi * np.power(self.baseline * 1.e5, 2)  # baseline in [cm]
 
-        if self.which_isospectrum != which_isospectrum:
-            if which_isospectrum == 'V':
-                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
-            elif which_isospectrum == 'HM':
-                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
-            elif which_isospectrum == 'DYB':
-                self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
-            else:
-                print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                      "in reactor_flux_no_osc function, ReactorSpectrum class.")
-                sys.exit()
+        if which_isospectrum == 'V':
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+        elif which_isospectrum == 'HM':
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+        elif which_isospectrum == 'DYB':
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+        else:
+            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  "in reactor_flux_no_osc function, ReactorSpectrum class.")
+            sys.exit()
 
         self.react_flux = self.react_spectrum / den
 
         if bool_snf:
             self.bool_snf = True
-            print("\nAdding SNF contribution")
+            if self.verbose:
+                print("\nAdding SNF contribution")
             if not np.any(self.snf):
-                print('Reading SNF from file')
+                if self.verbose:
+                    print('Reading SNF from file')
                 self.get_snf_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.react_flux * self.snf
         else:
@@ -374,34 +318,24 @@ class ReactorSpectrum:
 
         if bool_noneq:
             self.bool_noneq = True
-            print("\nAdding NonEq contribution")
+            if self.verbose:
+                print("\nAdding NonEq contribution")
             if not np.any(self.noneq):
-                print('Reading NonEq from file')
+                if self.verbose:
+                    print('Reading NonEq from file')
                 self.get_noneq_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.noneq * self.react_flux
         else:
             self.bool_noneq = False
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(nu_energy_, self.react_flux, 'k', linewidth=1.5, label='Reactor flux')
-            ax.legend()
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [$\si{MeV}$]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/flux.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/flux.pdf')
+            ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
+            plot_function(x_=[nu_energy_], y_=[self.react_flux], label_=['Reactor flux'], styles=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.react_flux
 
-    ### TODO: move to DetectorResponse class
+    ### TODO: move cross section to DetectorResponse class (???)
 
     def eval_n_protons(self):
 
@@ -417,12 +351,13 @@ class ReactorSpectrum:
     def cross_section_sv(self, nu_energy_):
 
         self.which_xsec = 'SV'
-        print("\nUsing Strumia Vissani cross section from common inputs (default)")
+        if self.verbose:
+            print("\nUsing Strumia Vissani cross section from common inputs (default)")
 
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.csv", sep=",",
                              names=["nu_energy", "cross_section"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
@@ -435,12 +370,13 @@ class ReactorSpectrum:
     def cross_section_vb(self, nu_energy_):
 
         self.which_xsec = 'VB'
-        print("\nUsing Vogel Beacom cross section from common inputs")
+        if self.verbose:
+            print("\nUsing Vogel Beacom cross section from common inputs")
 
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.txt", sep="\t",
+        input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.csv", sep=",",
                              names=["nu_energy", "cross_section"], header=None)
 
         f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
@@ -477,68 +413,43 @@ class ReactorSpectrum:
         self.x_sec_np = self.x_sec * self.proton_number
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(nu_energy_, self.x_sec*self.proton_number, 'k', linewidth=1.5, label='IBD cross section')
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            # plt.savefig('SpectrumPlots/cross_section.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/cross_section.pdf')
+            ylabel = r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]'
+            plot_function(x_=[nu_energy_], y_=[self.x_sec_np], label_=['IBD cross section'], styles=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.x_sec_np
 
     def antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='HM',
                                bool_snf=False, bool_noneq=False, plot_this=False):
 
-        if self.which_isospectrum != which_isospectrum or self.bool_snf != bool_snf or self.bool_noneq != bool_noneq:
-            if which_isospectrum == 'V':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
-                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
-            elif which_isospectrum == 'HM':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
-                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
-            elif which_isospectrum == 'DYB':
-                self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
-                                         bool_snf=bool_snf, bool_noneq=bool_noneq)
-            else:
-                print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                      "in antinu_spectrum_no_osc function, ReactorSpectrum class.")
-                sys.exit()
+        if which_isospectrum == 'V':
+            self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                     bool_snf=bool_snf, bool_noneq=bool_noneq)
+        elif which_isospectrum == 'HM':
+            self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                     bool_snf=bool_snf, bool_noneq=bool_noneq)
+        elif which_isospectrum == 'DYB':
+            self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
+                                     bool_snf=bool_snf, bool_noneq=bool_noneq)
+        else:
+            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  "in antinu_spectrum_no_osc function, ReactorSpectrum class.")
+            sys.exit()
 
-        if self.which_xsec != which_xsec:
-            if which_xsec == 'SV':
-                self.cross_section_sv(nu_energy_)
-            elif which_xsec == 'VB':
-                self.cross_section_vb(nu_energy_)
-            else:
-                print("\nError: only 'SV' or 'VB' are accepted values for which_xsec argument, "
-                      "in antinu_spectrum_nu_osc function, ReactorSpectrum class.")
-                sys.exit()
+        if which_xsec == 'SV':
+            self.cross_section_sv(nu_energy_)
+        elif which_xsec == 'VB':
+            self.cross_section_vb(nu_energy_)
+        else:
+            print("\nError: only 'SV' or 'VB' are accepted values for which_xsec argument, "
+                  "in antinu_spectrum_nu_osc function, ReactorSpectrum class.")
+            sys.exit()
 
         self.spectrum_unosc = self.react_flux * self.x_sec_np
 
         if plot_this:
-            loc = plticker.MultipleLocator(base=2.0)
-            loc1 = plticker.MultipleLocator(base=0.5)
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(nu_energy_, self.spectrum_unosc, 'k', linewidth=1.5, label='spectrum')  # not normalized spectrum
-            ax.grid(alpha=0.65)
-            ax.set_xlabel(r'$E_{\nu}$ [\si{MeV}]')
-            ax.set_xlim(1.5, 10.5)
-            ax.set_ylabel(r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]')
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_minor_locator(loc1)
-            ax.tick_params('both', direction='out', which='both')
-            ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-            # plt.savefig('SpectrumPlots/unoscillated_spectrum.pdf', format='pdf', transparent=True)
-            # print('\nThe plot has been saved in SpectrumPlots/unoscillated_spectrum.pdf')
+            ylabel = r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]'
+            plot_function(x_=[nu_energy_], y_=[self.spectrum_unosc], label_=['spectrum'], styles=['k'],
+                          ylabel_=ylabel, xlim=[1.5, 10.5])
 
         return self.spectrum_unosc
