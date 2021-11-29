@@ -12,9 +12,4 @@ Test_Stoch_Response/
 __pycache__/
 
 main.py
-convolution.py
-baseline_main.py
-baseline2.py
-plot.py
-mixing.py
 Inputs/test_unfolded.py
