@@ -1,9 +1,12 @@
 # JUNO Reactor Antineutrino Analysis
 
+Contact: Beatrice Jelmini
+beatrice.jelmini@studenti.unipd.it
+
 ## Macros
 
 You can run the macros in interactive mode with `python -i macro_name.py` or `ipython -i macro_name.py`.
-Some plots will appear.Analysis
+Some plots will appear.
 
 Macros:
 * `macro_reactor.py`: shows comparison between the three reactor models (V, HM, DYB); SNF and NonEq corrections
