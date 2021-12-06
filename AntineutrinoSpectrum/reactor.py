@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 import math
 import sys
+import uproot
 from plot import plot_function
 
 
@@ -47,6 +48,7 @@ class ReactorSpectrum:
         self.proton_number = 0.
         self.snf = 0.
         self.noneq = 0.
+        self.dybfluxdump = 0.
 
         self.bool_snf = False
         self.bool_noneq = False
@@ -155,7 +157,21 @@ class ReactorSpectrum:
 
         return self.noneq
 
-    def isotopic_spectrum_vogel(self, nu_energy_, plot_this=False):
+    def get_dybfluxbump_ratio(self, nu_energy_):
+
+        # input_[0] are the values(), input_[1] are axis().edges()
+        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:DYBFluxBump_ratio").to_numpy()
+
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_+1] + input_[1][i_])/2.
+
+        f_appo = interp1d(xx, input_[0])
+        self.dybfluxdump = f_appo(nu_energy_)
+
+        return self.dybfluxdump
+
+    def isotopic_spectrum_vogel(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'V'
         if self.verbose:
@@ -175,6 +191,18 @@ class ReactorSpectrum:
         self.iso_spectrum = self.fiss_frac_235u * u235 + self.fiss_frac_239pu * pu239 \
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
+        if bool_noneq:
+            self.bool_noneq = True
+            if self.verbose:
+                print("\nAdding NonEq contribution")
+            if not np.any(self.noneq):
+                if self.verbose:
+                    print('Reading NonEq from file')
+                self.get_noneq_ratio(nu_energy_)
+            self.iso_spectrum = self.iso_spectrum + self.noneq * self.iso_spectrum
+        else:
+            self.bool_noneq = False
+
         if plot_this:
             ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)'
             plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
@@ -185,7 +213,7 @@ class ReactorSpectrum:
 
         return self.iso_spectrum
 
-    def isotopic_spectrum_hubermueller(self, nu_energy_, plot_this=False):
+    def isotopic_spectrum_hubermueller(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'HM'
         if self.verbose:
@@ -205,6 +233,18 @@ class ReactorSpectrum:
         self.iso_spectrum = self.fiss_frac_235u * u235 + self.fiss_frac_239pu * pu239 \
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
+        if bool_noneq:
+            self.bool_noneq = True
+            if self.verbose:
+                print("\nAdding NonEq contribution")
+            if not np.any(self.noneq):
+                if self.verbose:
+                    print('Reading NonEq from file')
+                self.get_noneq_ratio(nu_energy_)
+            self.iso_spectrum = self.iso_spectrum + self.noneq * self.iso_spectrum
+        else:
+            self.bool_noneq = False
+
         if plot_this:
             ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)'
             plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
@@ -215,7 +255,7 @@ class ReactorSpectrum:
 
         return self.iso_spectrum
 
-    def isotopic_spectrum_DYB(self, nu_energy_, plot_this=False):
+    def isotopic_spectrum_dyb(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'DYB'
         if self.verbose:
@@ -245,12 +285,27 @@ class ReactorSpectrum:
         unfolded_pu_combo = pd.read_csv("Inputs/pu_combo_unfolded_DYB.txt", sep="\t",
                                         names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=0)
 
-        s_total = interp1d(unfolded_spectrum["bin_center"], unfolded_spectrum["isotopic_spectrum"])
-        s_235 = interp1d(unfolded_u235["bin_center"], unfolded_u235["isotopic_spectrum"])
-        s_combo = interp1d(unfolded_pu_combo["bin_center"], unfolded_pu_combo["isotopic_spectrum"])
+        s_total = interp1d(unfolded_spectrum["bin_center"], unfolded_spectrum["isotopic_spectrum"], kind='cubic')
+        s_235 = interp1d(unfolded_u235["bin_center"], unfolded_u235["isotopic_spectrum"], kind='cubic')
+        s_combo = interp1d(unfolded_pu_combo["bin_center"], unfolded_pu_combo["isotopic_spectrum"], kind='cubic')
 
-        self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
-                            + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
+        # self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
+        #                     + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
+
+        if bool_noneq:
+            self.bool_noneq = True
+            if self.verbose:
+                print("\nAdding NonEq contribution")
+            if not np.any(self.noneq):
+                if self.verbose:
+                    print('Reading NonEq from file')
+                self.get_noneq_ratio(nu_energy_)
+            self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
+                                + df_238 * u238 * (1+self.noneq) + (df_241 - 0.183 * df_239) * pu241 * (1+self.noneq)
+        else:
+            self.bool_noneq = False
+            self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
+                                + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
 
         if plot_this:
             ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)'
@@ -259,16 +314,16 @@ class ReactorSpectrum:
 
         return self.iso_spectrum
 
-    def reactor_spectrum(self, nu_energy_, which_isospectrum='HM', plot_this=False):
+    def reactor_spectrum(self, nu_energy_, which_isospectrum='HM', bool_noneq=False, plot_this=False):
 
         const = 6.241509e21
 
         if which_isospectrum == 'V':
-            self.isotopic_spectrum_vogel(nu_energy_)
+            self.isotopic_spectrum_vogel(nu_energy_, bool_noneq=bool_noneq)
         elif which_isospectrum == 'HM':
-            self.isotopic_spectrum_hubermueller(nu_energy_)
+            self.isotopic_spectrum_hubermueller(nu_energy_, bool_noneq=bool_noneq)
         elif which_isospectrum == 'DYB':
-            self.isotopic_spectrum_DYB(nu_energy_)
+            self.isotopic_spectrum_dyb(nu_energy_, bool_noneq=bool_noneq)
         else:
             print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
                   "in reactor_spectrum function, ReactorSpectrum class.")
@@ -292,11 +347,11 @@ class ReactorSpectrum:
         den = 4. * math.pi * np.power(self.baseline * 1.e5, 2)  # baseline in [cm]
 
         if which_isospectrum == 'V':
-            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum, bool_noneq=bool_noneq)
         elif which_isospectrum == 'HM':
-            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum, bool_noneq=bool_noneq)
         elif which_isospectrum == 'DYB':
-            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum, bool_noneq=bool_noneq)
         else:
             print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
                   "in reactor_flux_no_osc function, ReactorSpectrum class.")
@@ -316,17 +371,17 @@ class ReactorSpectrum:
         else:
             self.bool_snf = False
 
-        if bool_noneq:
-            self.bool_noneq = True
-            if self.verbose:
-                print("\nAdding NonEq contribution")
-            if not np.any(self.noneq):
-                if self.verbose:
-                    print('Reading NonEq from file')
-                self.get_noneq_ratio(nu_energy_)
-            self.react_flux = self.react_flux + self.noneq * self.react_flux
-        else:
-            self.bool_noneq = False
+        # if bool_noneq:
+        #     self.bool_noneq = True
+        #     if self.verbose:
+        #         print("\nAdding NonEq contribution")
+        #     if not np.any(self.noneq):
+        #         if self.verbose:
+        #             print('Reading NonEq from file')
+        #         self.get_noneq_ratio(nu_energy_)
+        #     self.react_flux = self.react_flux + self.noneq * self.react_flux
+        # else:
+        #     self.bool_noneq = False
 
         if plot_this:
             ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
