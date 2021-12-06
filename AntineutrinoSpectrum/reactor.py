@@ -138,10 +138,18 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_snf_ratio(self, nu_energy_):
 
-        input_ = pd.read_csv("Inputs/SNF_FluxRatio.csv", sep=",",
-                             names=["nu_energy", "snf_ratio"], header=None)
+        if self.verbose:
+            print('Reading SNF from file')
 
-        f_appo = interp1d(input_["nu_energy"], input_["snf_ratio"])
+        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:SNF_FluxRatio").to_numpy()
+        # input_ = pd.read_csv("Inputs/SNF_FluxRatio.csv", sep=",",
+        #                      names=["nu_energy", "snf_ratio"], header=None)
+
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
         self.snf = f_appo(nu_energy_)
 
         return self.snf
@@ -149,15 +157,24 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_noneq_ratio(self, nu_energy_):
 
-        input_ = pd.read_csv("Inputs/NonEq_FluxRatio.csv", sep=",",
-                             names=["nu_energy", "noneq_ratio"], header=None)
+        if self.verbose:
+            print('Reading NonEq from file')
 
-        f_appo = interp1d(input_["nu_energy"], input_["noneq_ratio"])
+        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:NonEq_FluxRatio").to_numpy()
+
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
         self.noneq = f_appo(nu_energy_)
 
         return self.noneq
 
     def get_dybfluxbump_ratio(self, nu_energy_):
+
+        if self.verbose:
+            print('Reading DYB flux bump ratio from file')
 
         # input_[0] are the values(), input_[1] are axis().edges()
         input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:DYBFluxBump_ratio").to_numpy()
@@ -196,8 +213,6 @@ class ReactorSpectrum:
             if self.verbose:
                 print("\nAdding NonEq contribution")
             if not np.any(self.noneq):
-                if self.verbose:
-                    print('Reading NonEq from file')
                 self.get_noneq_ratio(nu_energy_)
             self.iso_spectrum = self.iso_spectrum + self.noneq * self.iso_spectrum
         else:
@@ -238,8 +253,6 @@ class ReactorSpectrum:
             if self.verbose:
                 print("\nAdding NonEq contribution")
             if not np.any(self.noneq):
-                if self.verbose:
-                    print('Reading NonEq from file')
                 self.get_noneq_ratio(nu_energy_)
             self.iso_spectrum = self.iso_spectrum + self.noneq * self.iso_spectrum
         else:
@@ -289,16 +302,11 @@ class ReactorSpectrum:
         s_235 = interp1d(unfolded_u235["bin_center"], unfolded_u235["isotopic_spectrum"], kind='cubic')
         s_combo = interp1d(unfolded_pu_combo["bin_center"], unfolded_pu_combo["isotopic_spectrum"], kind='cubic')
 
-        # self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
-        #                     + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
-
         if bool_noneq:
             self.bool_noneq = True
             if self.verbose:
                 print("\nAdding NonEq contribution")
             if not np.any(self.noneq):
-                if self.verbose:
-                    print('Reading NonEq from file')
                 self.get_noneq_ratio(nu_energy_)
             self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
                                 + df_238 * u238 * (1+self.noneq) + (df_241 - 0.183 * df_239) * pu241 * (1+self.noneq)
@@ -364,24 +372,10 @@ class ReactorSpectrum:
             if self.verbose:
                 print("\nAdding SNF contribution")
             if not np.any(self.snf):
-                if self.verbose:
-                    print('Reading SNF from file')
                 self.get_snf_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.react_flux * self.snf
         else:
             self.bool_snf = False
-
-        # if bool_noneq:
-        #     self.bool_noneq = True
-        #     if self.verbose:
-        #         print("\nAdding NonEq contribution")
-        #     if not np.any(self.noneq):
-        #         if self.verbose:
-        #             print('Reading NonEq from file')
-        #         self.get_noneq_ratio(nu_energy_)
-        #     self.react_flux = self.react_flux + self.noneq * self.react_flux
-        # else:
-        #     self.bool_noneq = False
 
         if plot_this:
             ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
@@ -412,10 +406,14 @@ class ReactorSpectrum:
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.csv", sep=",",
-                             names=["nu_energy", "cross_section"], header=None)
+        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:IBDXsec_StrumiaVissani").to_numpy()
 
-        f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
+
         self.x_sec = f_appo(nu_energy_)
         self.x_sec_np = self.x_sec * self.proton_number
 
@@ -431,10 +429,14 @@ class ReactorSpectrum:
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.csv", sep=",",
-                             names=["nu_energy", "cross_section"], header=None)
+        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:IBDXsec_VogelBeacom_DYB").to_numpy()
 
-        f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
+
         self.x_sec = f_appo(nu_energy_)
         self.x_sec_np = self.x_sec * self.proton_number
 

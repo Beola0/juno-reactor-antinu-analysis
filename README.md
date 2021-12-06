@@ -3,6 +3,11 @@
 Contact: Beatrice Jelmini
 beatrice.jelmini@studenti.unipd.it
 
+## Dependencies
+
+Python libraries needed: `numpy`, `scipy`, `pandas` (https://pandas.pydata.org/), 
+`uproot` (https://github.com/scikit-hep/uproot4)
+
 ## Macros
 
 You can run the macros in interactive mode with `python -i macro_name.py` or `ipython -i macro_name.py`.
