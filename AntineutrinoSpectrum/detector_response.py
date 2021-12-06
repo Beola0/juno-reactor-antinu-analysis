@@ -4,11 +4,12 @@ import math
 from scipy import integrate
 import pandas as pd
 from scipy.interpolate import interp1d
+from plot import plot_function
 
 # TODO
 # - add non linearity
 # - initialize with json file? --> DONE
-# - remove plotting parts
+# - remove plotting parts --> improved DONE
 # - add nuisance parameters for a, b, and c
 
 
@@ -79,17 +80,6 @@ class DetectorResponse:
 
     def gaussian_smearing_fixed_sigma(self, f_, initial_energy_, final_energy_, sigma_,
                                       plot_this=False, plot_start=False):
-        """ Evaluates the numerical convolution of the function f with a Gaussian with given fixed or variable width.
-
-        :param f_: Function (samples) to be convolved with the Gaussian
-        :param initial_energy_: Initial energy variable, it is usually Edep = Enu - 0.8
-        :param final_energy_: Final energy variable, it is usually Evis, or also Erec
-        :param sigma_: Fixed value of the width of the Gaussian
-        :param plot_this: If True, plots the result of the convolution as a function of E_fin
-        :param plot_start: If True, plots the initial function f as a function of E_in
-
-        :return: smeared_spectrum: is the result of the numerical convolution
-        """
 
         # gaussian with fixed given width
         self.smeared_spectrum = np.zeros(len(final_energy_))
@@ -101,42 +91,22 @@ class DetectorResponse:
             n += 1
 
         if plot_this:
-            fig1 = plt.figure()
-            ax1 = fig1.add_subplot(111)
-            ax1.plot(final_energy_, self.smeared_spectrum, 'b', linewidth=1, label='Convolved spectrum')
-            ax1.set_xlabel(r'$E_{vis}$ [\si{MeV}]')
-            ax1.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax1.set_ylim(-0.005, 0.095)
-            ax1.set_title(r'Numerical convolution with a Gaussian' + '\nwith fixed width')
-            ax1.grid()
-            ax1.legend()
-
-        if plot_start:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(initial_energy_, f_, 'b', linewidth=1, label='Unconvolved spectrum')
-            ax.set_xlabel(r'$E_{dep}$ [\si{MeV}]')
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax.set_ylim(-0.005, 0.095)
-            ax.set_title(r'Starting spectrum')
-            ax.grid()
-            ax.legend()
+            if plot_start:
+                plot_function(x_=[final_energy_, initial_energy_], y_=[self.smeared_spectrum, f_],
+                              label_=[r'Convolved spectrum', r'Unconvolved spectrum'], styles=['k-', 'r--'],
+                              ylabel_=r'$N(\bar{\nu})$ [a.u.] (fixed sigma res)', xlabel_=r'$E_{vis}$ [\si{MeV}]',
+                              xlim=[1.5-1, 10.5], ylim=None)
+            else:
+                plot_function(x_=[final_energy_], y_=[self.smeared_spectrum],
+                              label_=[r'Convolved spectrum'], styles=['k-'],
+                              ylabel_=r'$N(\bar{\nu})$ [a.u.] (fixed sigma res)', xlabel_=r'$E_{vis}$ [\si{MeV}]',
+                              xlim=[1.5-1, 10.5], ylim=None)
 
         return self.smeared_spectrum
 
     def gaussian_smearing_abc(self, f_, initial_energy_, final_energy_, plot_this=False, plot_start=False):
-        """ Evaluates the numerical convolution of the function f with a Gaussian with given fixed or variable width.
 
-        :param f_: Function (samples) to be convolved with the Gaussian
-        :param initial_energy_: Initial energy variable, it is usually Edep = Enu - 0.8
-        :param final_energy_: Final energy variable, it is usually Evis, or also Erec
-        :param plot_this: If True, plots the result of the convolution as a function of E_fin
-        :param plot_start: If True, plots the initial function f as a function of E_in
-
-        :return: smeared_spectrum: is the result of the numerical convolution
-        """
-
-        # gaussian with variable width, set by a (stochastic term) and b (constant term)
+        # gaussian with variable width, set by a (stochastic term) and b (constant term) and c (noise term)
         rad = self.a * self.a / initial_energy_ + self.b * self.b + self.c * self.c / np.power(initial_energy_, 2)
         sigma_energy = np.sqrt(rad) * initial_energy_
 
@@ -149,40 +119,30 @@ class DetectorResponse:
             n += 1
 
         if plot_this:
-            fig1 = plt.figure()
-            ax1 = fig1.add_subplot(111)
-            ax1.plot(final_energy_, self.smeared_spectrum, 'b', linewidth=1, label='Convolved spectrum')
-            ax1.set_xlabel(r'$E_{vis}$ [\si{MeV}]')
-            ax1.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax1.set_ylim(-0.005, 0.095)
-            ax1.set_title(r'Numerical convolution with a Gaussian' + '\nwith variable width')
-            ax1.grid()
-            ax1.legend()
-
-        if plot_start:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(initial_energy_, f_, 'b', linewidth=1, label='Unconvolved spectrum')
-            ax.set_xlabel(r'$E_{dep}$ [\si{MeV}]')
-            ax.set_ylabel(r'$N(\bar{\nu})$ [arb. unit]')
-            ax.set_ylim(-0.005, 0.095)
-            ax.set_title(r'Starting spectrum')
-            ax.grid()
-            ax.legend()
+            if plot_start:
+                plot_function(x_=[final_energy_, initial_energy_], y_=[self.smeared_spectrum, f_],
+                              label_=[r'Convolved spectrum', r'Unconvolved spectrum'], styles=['k-', 'r--'],
+                              ylabel_=r'$N(\bar{\nu})$ [a.u.] (fixed sigma res)', xlabel_=r'$E_{vis}$ [\si{MeV}]',
+                              xlim=[1.5-1, 10.5], ylim=None)
+            else:
+                plot_function(x_=[final_energy_], y_=[self.smeared_spectrum],
+                              label_=[r'Convolved spectrum'], styles=['k-'],
+                              ylabel_=r'$N(\bar{\nu})$ [a.u.] (fixed sigma res)', xlabel_=r'$E_{vis}$ [\si{MeV}]',
+                              xlim=[1.5-1, 10.5], ylim=None)
 
         return self.smeared_spectrum
 
     def get_nl_curves(self, dep_energy_):
 
-        input_nom = pd.read_csv("Inputs/positronScintNL.txt", sep="\t",
+        input_nom = pd.read_csv("Inputs/positronScintNL.csv", sep=",",
                                 names=["dep_energy", "nl_nominal"], header=None)
-        input_pull0 = pd.read_csv("Inputs/positronScintNLpull0.txt", sep="\t",
+        input_pull0 = pd.read_csv("Inputs/positronScintNLpull0.csv", sep=",",
                                   names=["dep_energy", "nl_pull0"], header=None)
-        input_pull1 = pd.read_csv("Inputs/positronScintNLpull1.txt", sep="\t",
+        input_pull1 = pd.read_csv("Inputs/positronScintNLpull1.csv", sep=",",
                                   names=["dep_energy", "nl_pull1"], header=None)
-        input_pull2 = pd.read_csv("Inputs/positronScintNLpull2.txt", sep="\t",
+        input_pull2 = pd.read_csv("Inputs/positronScintNLpull2.csv", sep=",",
                                   names=["dep_energy", "nl_pull2"], header=None)
-        input_pull3 = pd.read_csv("Inputs/positronScintNLpull3.txt", sep="\t",
+        input_pull3 = pd.read_csv("Inputs/positronScintNLpull3.csv", sep=",",
                                   names=["dep_energy", "nl_pull3"], header=None)
 
         f_appo = interp1d(input_nom["dep_energy"], input_nom["nl_nominal"])

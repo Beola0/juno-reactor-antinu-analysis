@@ -2,6 +2,7 @@ import numpy as np
 import math
 from scipy import integrate
 import pandas as pd
+from pynverse import inversefunc
 from plot import plot_function
 from reactor import ReactorSpectrum
 from oscillation import OscillationProbability
@@ -370,6 +371,52 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                           xlim=[1.5-1., 10.5-1.], ylim=None)
 
         return self.resol_no, self.resol_io
+
+    # TODO: add non linearity
+    def nonlin_spectrum_no(self, visible_energy_, matter=True, which_xsec='SV', which_isospectrum='DYB',
+                           bool_snf=True, bool_noneq=True, runtime=False, plot_this=False, plot_singles=False):
+
+        # nu_energy = np.arange(1.806, 30.01, 0.01)
+        nu_energy = np.arange(1.925, 8.65, 0.01)
+        dep_energy = nu_energy - 0.78
+
+        self.osc_spectrum_no(nu_energy, matter=matter,
+                             which_xsec=which_xsec, which_isospectrum=which_isospectrum,
+                             bool_snf=bool_snf, bool_noneq=bool_noneq)
+        appo_ee = self.get_singles_en()
+        appo_ss = self.get_singles()
+
+        if self.verbose:
+            print('adding experimental resolution via numerical convolution, it might take some time...')
+        self.resol_no = DetectorResponse.gaussian_smearing_abc(self, self.osc_spect_no, dep_energy, visible_energy_)
+        if runtime:
+            self.resol_no = self.resol_no * self.IBD_efficiency * self.daq_time * self.duty_cycle
+
+        if plot_this:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}]'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}]'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
+            plot_function(x_=[visible_energy_], y_=[self.resol_no], label_=[r'NO'], styles=[style["NO"]],
+                          ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]',
+                          xlim=[1.5-1., 10.5-1.], ylim=None)
+
+        if plot_singles and self.path_to_reactor_list is not None:
+            if runtime:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{\MeV}] - NO'
+            else:
+                ylabel_ = r'$S_{\bar{\nu}}$ [N$_{\bar{\nu}}$/\si{s}/\si{\MeV}] - NO'
+            if matter:
+                ylabel_ = ylabel_ + ' (in matter)'
+            for j_ in np.arange(len(appo_ee)):
+                appo_ee[j_] = visible_energy_
+                appo_ss[j_] = DetectorResponse.gaussian_smearing_abc(self, appo_ss[j_], dep_energy, visible_energy_)
+            plot_function(x_=appo_ee, y_=appo_ss, label_=self.r_list["name"], styles=None,
+                          ylabel_=ylabel_, xlabel_=r'$E_{\text{vis}}$ [\si{MeV}]', xlim=[1.5-1., 10.5-1.], ylim=None)
+
+        return self.resol_no
 
     ###  TODO:   REVISION NEEDED
 
