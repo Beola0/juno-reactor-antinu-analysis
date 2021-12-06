@@ -37,6 +37,7 @@ class ReactorSpectrum:
         self.baseline = inputs_json_["baseline"]
 
         self.verbose = inputs_json_["verbose"]
+        self.root_file = inputs_json_["ROOT_file"]
         self.inputs_json = inputs_json_
 
         self.iso_spectrum = 0.
@@ -137,13 +138,10 @@ class ReactorSpectrum:
 
     ### from DYB arXiv:1607.05378 - common inputs
     def get_snf_ratio(self, nu_energy_):
-
         if self.verbose:
             print('Reading SNF from file')
 
-        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:SNF_FluxRatio").to_numpy()
-        # input_ = pd.read_csv("Inputs/SNF_FluxRatio.csv", sep=",",
-        #                      names=["nu_energy", "snf_ratio"], header=None)
+        input_ = uproot.open(self.root_file + ":SNF_FluxRatio").to_numpy()
 
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
@@ -151,16 +149,14 @@ class ReactorSpectrum:
 
         f_appo = interp1d(xx, input_[0])
         self.snf = f_appo(nu_energy_)
-
         return self.snf
 
     ### from DYB arXiv:1607.05378 - common inputs
     def get_noneq_ratio(self, nu_energy_):
-
         if self.verbose:
             print('Reading NonEq from file')
 
-        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:NonEq_FluxRatio").to_numpy()
+        input_ = uproot.open(self.root_file + ":NonEq_FluxRatio").to_numpy()
 
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
@@ -168,16 +164,14 @@ class ReactorSpectrum:
 
         f_appo = interp1d(xx, input_[0])
         self.noneq = f_appo(nu_energy_)
-
         return self.noneq
 
     def get_dybfluxbump_ratio(self, nu_energy_):
-
         if self.verbose:
             print('Reading DYB flux bump ratio from file')
 
         # input_[0] are the values(), input_[1] are axis().edges()
-        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:DYBFluxBump_ratio").to_numpy()
+        input_ = uproot.open(self.root_file + ":DYBFluxBump_ratio").to_numpy()
 
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
@@ -185,7 +179,6 @@ class ReactorSpectrum:
 
         f_appo = interp1d(xx, input_[0])
         self.dybfluxdump = f_appo(nu_energy_)
-
         return self.dybfluxdump
 
     def isotopic_spectrum_vogel(self, nu_energy_, bool_noneq=False, plot_this=False):
@@ -406,7 +399,7 @@ class ReactorSpectrum:
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:IBDXsec_StrumiaVissani").to_numpy()
+        input_ = uproot.open(self.root_file + ":IBDXsec_StrumiaVissani").to_numpy()
 
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
@@ -429,7 +422,7 @@ class ReactorSpectrum:
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = uproot.open("Inputs/JUNOInputs2021_05_28_noTF2.root:IBDXsec_VogelBeacom_DYB").to_numpy()
+        input_ = uproot.open(self.root_file + ":IBDXsec_VogelBeacom_DYB").to_numpy()
 
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
