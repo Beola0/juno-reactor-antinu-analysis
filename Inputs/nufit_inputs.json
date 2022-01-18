@@ -44,5 +44,6 @@
 	"thermal_power" : 26.6,
 	"baseline" : 52.5,
 	"reactor_list" : "Inputs/list_of_reactors.csv",
+	"ROOT_file" : "Inputs/JUNOInputs2021_05_28_noTF2.root",
 	"verbose" : true
 }

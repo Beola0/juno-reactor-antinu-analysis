@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 import math
 import sys
+import uproot
 from plot import plot_function
 
 
@@ -15,7 +16,15 @@ from plot import plot_function
 # - add SNF and NonEq contributions --> DONE
 # - add nuisances: for SNF and NonEq
 # - check interpolation and extrapolation methods for DYB-based reactor model
-# - correct NonEq for DYB model
+# - correct NonEq for DYB model --> DONE
+
+HEADER = '\033[95m'
+BLUE = '\033[94m'
+CYAN = '\033[96m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+NC = '\033[0m'
 
 
 class ReactorSpectrum:
@@ -36,6 +45,7 @@ class ReactorSpectrum:
         self.baseline = inputs_json_["baseline"]
 
         self.verbose = inputs_json_["verbose"]
+        self.root_file = inputs_json_["ROOT_file"]
         self.inputs_json = inputs_json_
 
         self.iso_spectrum = 0.
@@ -47,6 +57,7 @@ class ReactorSpectrum:
         self.proton_number = 0.
         self.snf = 0.
         self.noneq = 0.
+        self.dybfluxdump = 0.
 
         self.bool_snf = False
         self.bool_noneq = False
@@ -135,31 +146,54 @@ class ReactorSpectrum:
 
     ### from DYB arXiv:1607.05378 - common inputs
     def get_snf_ratio(self, nu_energy_):
+        if self.verbose:
+            print(f"{BLUE}Reading SNF from file{NC}")
 
-        input_ = pd.read_csv("Inputs/SNF_FluxRatio.csv", sep=",",
-                             names=["nu_energy", "snf_ratio"], header=None)
+        input_ = uproot.open(self.root_file + ":SNF_FluxRatio").to_numpy()
 
-        f_appo = interp1d(input_["nu_energy"], input_["snf_ratio"])
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
         self.snf = f_appo(nu_energy_)
-
         return self.snf
 
     ### from DYB arXiv:1607.05378 - common inputs
     def get_noneq_ratio(self, nu_energy_):
+        if self.verbose:
+            print(f"{BLUE}Reading NonEq from file{NC}")
 
-        input_ = pd.read_csv("Inputs/NonEq_FluxRatio.csv", sep=",",
-                             names=["nu_energy", "noneq_ratio"], header=None)
+        input_ = uproot.open(self.root_file + ":NonEq_FluxRatio").to_numpy()
 
-        f_appo = interp1d(input_["nu_energy"], input_["noneq_ratio"])
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
         self.noneq = f_appo(nu_energy_)
-
         return self.noneq
 
-    def isotopic_spectrum_vogel(self, nu_energy_, plot_this=False):
+    def get_dybfluxbump_ratio(self, nu_energy_):
+        if self.verbose:
+            print(f"{BLUE}Reading DYB flux bump ratio from file{NC}")
+
+        # input_[0] are the values(), input_[1] are axis().edges()
+        input_ = uproot.open(self.root_file + ":DYBFluxBump_ratio").to_numpy()
+
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_+1] + input_[1][i_])/2.
+
+        f_appo = interp1d(xx, input_[0])
+        self.dybfluxdump = f_appo(nu_energy_)
+        return self.dybfluxdump
+
+    def isotopic_spectrum_vogel(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'V'
         if self.verbose:
-            print("\nUsing Vogel isotopic spectra")
+            print(f"\n{CYAN}Using Vogel isotopic spectra{NC}")
 
         ### params taken from Vogel, Engel, PRD 39-11 pp 3378, 1989
         ### exponential of a polynomial of second order
@@ -175,6 +209,16 @@ class ReactorSpectrum:
         self.iso_spectrum = self.fiss_frac_235u * u235 + self.fiss_frac_239pu * pu239 \
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
+        if bool_noneq:
+            self.bool_noneq = True
+            if self.verbose:
+                print(f"\n{CYAN}Adding NonEq contribution{NC}")
+            if not np.any(self.noneq):
+                self.get_noneq_ratio(nu_energy_)
+            self.iso_spectrum = self.iso_spectrum + self.noneq * self.iso_spectrum
+        else:
+            self.bool_noneq = False
+
         if plot_this:
             ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (Vogel)'
             plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
@@ -185,11 +229,11 @@ class ReactorSpectrum:
 
         return self.iso_spectrum
 
-    def isotopic_spectrum_hubermueller(self, nu_energy_, plot_this=False):
+    def isotopic_spectrum_hubermueller(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'HM'
         if self.verbose:
-            print("\nUsing Huber+Mueller isotopic spectra")
+            print(f"\n{CYAN}Using Huber+Mueller isotopic spectra{NC}")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for others
         ### exponential of a polynomial of fifth order
@@ -205,6 +249,16 @@ class ReactorSpectrum:
         self.iso_spectrum = self.fiss_frac_235u * u235 + self.fiss_frac_239pu * pu239 \
                             + self.fiss_frac_238u * u238 + self.fiss_frac_241pu * pu241
 
+        if bool_noneq:
+            self.bool_noneq = True
+            if self.verbose:
+                print(f"\n{CYAN}Adding NonEq contribution{NC}")
+            if not np.any(self.noneq):
+                self.get_noneq_ratio(nu_energy_)
+            self.iso_spectrum = self.iso_spectrum + self.noneq * self.iso_spectrum
+        else:
+            self.bool_noneq = False
+
         if plot_this:
             ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (H+M)'
             plot_function(x_=[nu_energy_, nu_energy_, nu_energy_, nu_energy_, nu_energy_],
@@ -215,11 +269,11 @@ class ReactorSpectrum:
 
         return self.iso_spectrum
 
-    def isotopic_spectrum_DYB(self, nu_energy_, plot_this=False):
+    def isotopic_spectrum_dyb(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'DYB'
         if self.verbose:
-            print("\nUsing DYB isotopic spectra (default)")
+            print(f"\n{CYAN}Using DYB isotopic spectra (default){NC}")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for 241Pu
         params_u238 = [4.833e-1, 1.927e-1, -1.283e-1, -6.762e-3, 2.233e-3, -1.536e-4]
@@ -238,19 +292,29 @@ class ReactorSpectrum:
         df_241 = self.fiss_frac_241pu - f241_dyb
 
         ### unfolded spectra from DYB, arXiv:2102.04614
-        unfolded_spectrum = pd.read_csv("Inputs/total_unfolded_DYB.txt", sep="\t",
+        unfolded_spectrum = pd.read_csv("Inputs/spectra/total_unfolded_DYB.txt", sep="\t",
                                         names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=0)
-        unfolded_u235 = pd.read_csv("Inputs/u235_unfolded_DYB.txt", sep="\t",
+        unfolded_u235 = pd.read_csv("Inputs/spectra/u235_unfolded_DYB.txt", sep="\t",
                                     names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=0)
-        unfolded_pu_combo = pd.read_csv("Inputs/pu_combo_unfolded_DYB.txt", sep="\t",
+        unfolded_pu_combo = pd.read_csv("Inputs/spectra/pu_combo_unfolded_DYB.txt", sep="\t",
                                         names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=0)
 
-        s_total = interp1d(unfolded_spectrum["bin_center"], unfolded_spectrum["isotopic_spectrum"])
-        s_235 = interp1d(unfolded_u235["bin_center"], unfolded_u235["isotopic_spectrum"])
-        s_combo = interp1d(unfolded_pu_combo["bin_center"], unfolded_pu_combo["isotopic_spectrum"])
+        s_total = interp1d(unfolded_spectrum["bin_center"], unfolded_spectrum["isotopic_spectrum"], kind='cubic')
+        s_235 = interp1d(unfolded_u235["bin_center"], unfolded_u235["isotopic_spectrum"], kind='cubic')
+        s_combo = interp1d(unfolded_pu_combo["bin_center"], unfolded_pu_combo["isotopic_spectrum"], kind='cubic')
 
-        self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
-                            + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
+        if bool_noneq:
+            self.bool_noneq = True
+            if self.verbose:
+                print(f"\n{CYAN}Adding NonEq contribution{NC}")
+            if not np.any(self.noneq):
+                self.get_noneq_ratio(nu_energy_)
+            self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
+                                + df_238 * u238 * (1+self.noneq) + (df_241 - 0.183 * df_239) * pu241 * (1+self.noneq)
+        else:
+            self.bool_noneq = False
+            self.iso_spectrum = s_total(nu_energy_) + df_235 * s_235(nu_energy_) + df_239 * s_combo(nu_energy_) \
+                                + df_238 * u238 + (df_241 - 0.183 * df_239) * pu241
 
         if plot_this:
             ylabel = r'$S_{\nu}$ [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$] (DYB)'
@@ -259,19 +323,19 @@ class ReactorSpectrum:
 
         return self.iso_spectrum
 
-    def reactor_spectrum(self, nu_energy_, which_isospectrum='HM', plot_this=False):
+    def reactor_spectrum(self, nu_energy_, which_isospectrum='HM', bool_noneq=False, plot_this=False):
 
         const = 6.241509e21
 
         if which_isospectrum == 'V':
-            self.isotopic_spectrum_vogel(nu_energy_)
+            self.isotopic_spectrum_vogel(nu_energy_, bool_noneq=bool_noneq)
         elif which_isospectrum == 'HM':
-            self.isotopic_spectrum_hubermueller(nu_energy_)
+            self.isotopic_spectrum_hubermueller(nu_energy_, bool_noneq=bool_noneq)
         elif which_isospectrum == 'DYB':
-            self.isotopic_spectrum_DYB(nu_energy_)
+            self.isotopic_spectrum_dyb(nu_energy_, bool_noneq=bool_noneq)
         else:
-            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                  "in reactor_spectrum function, ReactorSpectrum class.")
+            print(f"\n{RED}Error: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  f"in reactor_spectrum function, ReactorSpectrum class.{NC}")
             sys.exit()
 
         en_per_fiss = self.fiss_frac_235u * self.fiss_en_235u + self.fiss_frac_239pu * self.fiss_en_239pu \
@@ -292,14 +356,14 @@ class ReactorSpectrum:
         den = 4. * math.pi * np.power(self.baseline * 1.e5, 2)  # baseline in [cm]
 
         if which_isospectrum == 'V':
-            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum, bool_noneq=bool_noneq)
         elif which_isospectrum == 'HM':
-            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum, bool_noneq=bool_noneq)
         elif which_isospectrum == 'DYB':
-            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum)
+            self.reactor_spectrum(nu_energy_, which_isospectrum=which_isospectrum, bool_noneq=bool_noneq)
         else:
-            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                  "in reactor_flux_no_osc function, ReactorSpectrum class.")
+            print(f"\n{RED}Error: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  f"in reactor_flux_no_osc function, ReactorSpectrum class.{NC}")
             sys.exit()
 
         self.react_flux = self.react_spectrum / den
@@ -307,26 +371,12 @@ class ReactorSpectrum:
         if bool_snf:
             self.bool_snf = True
             if self.verbose:
-                print("\nAdding SNF contribution")
+                print(f"\n{CYAN}Adding SNF contribution{NC}")
             if not np.any(self.snf):
-                if self.verbose:
-                    print('Reading SNF from file')
                 self.get_snf_ratio(nu_energy_)
             self.react_flux = self.react_flux + self.react_flux * self.snf
         else:
             self.bool_snf = False
-
-        if bool_noneq:
-            self.bool_noneq = True
-            if self.verbose:
-                print("\nAdding NonEq contribution")
-            if not np.any(self.noneq):
-                if self.verbose:
-                    print('Reading NonEq from file')
-                self.get_noneq_ratio(nu_energy_)
-            self.react_flux = self.react_flux + self.noneq * self.react_flux
-        else:
-            self.bool_noneq = False
 
         if plot_this:
             ylabel = r'$\Phi_{\nu}$ [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
@@ -352,15 +402,19 @@ class ReactorSpectrum:
 
         self.which_xsec = 'SV'
         if self.verbose:
-            print("\nUsing Strumia Vissani cross section from common inputs (default)")
+            print(f"\n{CYAN}Using Strumia Vissani cross section from common inputs (default){NC}")
 
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_StrumiaVissani.csv", sep=",",
-                             names=["nu_energy", "cross_section"], header=None)
+        input_ = uproot.open(self.root_file + ":IBDXsec_StrumiaVissani").to_numpy()
 
-        f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
+
         self.x_sec = f_appo(nu_energy_)
         self.x_sec_np = self.x_sec * self.proton_number
 
@@ -371,15 +425,19 @@ class ReactorSpectrum:
 
         self.which_xsec = 'VB'
         if self.verbose:
-            print("\nUsing Vogel Beacom cross section from common inputs")
+            print(f"\n{CYAN}Using Vogel Beacom cross section from common inputs{NC}")
 
         if self.proton_number == 0.:
             self.eval_n_protons()
 
-        input_ = pd.read_csv("Inputs/IBDXsec_VogelBeacom_DYB.csv", sep=",",
-                             names=["nu_energy", "cross_section"], header=None)
+        input_ = uproot.open(self.root_file + ":IBDXsec_VogelBeacom_DYB").to_numpy()
 
-        f_appo = interp1d(input_["nu_energy"], input_["cross_section"])
+        xx = np.zeros(len(input_[0]))
+        for i_ in np.arange(len(xx)):
+            xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+
+        f_appo = interp1d(xx, input_[0])
+
         self.x_sec = f_appo(nu_energy_)
         self.x_sec_np = self.x_sec * self.proton_number
 
@@ -432,8 +490,8 @@ class ReactorSpectrum:
             self.reactor_flux_no_osc(nu_energy_, which_isospectrum=which_isospectrum,
                                      bool_snf=bool_snf, bool_noneq=bool_noneq)
         else:
-            print("\nError: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
-                  "in antinu_spectrum_no_osc function, ReactorSpectrum class.")
+            print(f"\n{RED}Error: only 'V', 'VB' or 'DYB' are accepted values for which_isospectrum argument, "
+                  f"in antinu_spectrum_no_osc function, ReactorSpectrum class.{NC}")
             sys.exit()
 
         if which_xsec == 'SV':
@@ -441,8 +499,8 @@ class ReactorSpectrum:
         elif which_xsec == 'VB':
             self.cross_section_vb(nu_energy_)
         else:
-            print("\nError: only 'SV' or 'VB' are accepted values for which_xsec argument, "
-                  "in antinu_spectrum_nu_osc function, ReactorSpectrum class.")
+            print(f"\n{RED}Error: only 'SV' or 'VB' are accepted values for which_xsec argument, "
+                  f"in antinu_spectrum_nu_osc function, ReactorSpectrum class.{NC}")
             sys.exit()
 
         self.spectrum_unosc = self.react_flux * self.x_sec_np

@@ -14,6 +14,14 @@ from plot import plot_function
 # - put together E and L/E and use a flag (or energy='', if not do E) --> DONE
 # - add nuisances: for matter density
 
+HEADER = '\033[95m'
+BLUE = '\033[94m'
+CYAN = '\033[96m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+NC = '\033[0m'
+
 
 style = {
     "NO": 'b',
@@ -129,7 +137,7 @@ class OscillationProbability:
     def eval_vacuum_prob_no(self, nu_energy=None, plot_this=False):
 
         if self.verbose:
-            print("\nOscProb: evaluating probability in vacuum for NO.")
+            print(f"\n{CYAN}OscProb: evaluating probability in vacuum for NO.{NC}")
 
         if nu_energy is not None:
             x = self.baseline * 1000 / nu_energy  # [m/MeV]
@@ -159,7 +167,7 @@ class OscillationProbability:
     def eval_vacuum_prob_io(self, nu_energy=None, plot_this=False):
 
         if self.verbose:
-            print("\nOscProb: evaluating probability in vacuum for IO.")
+            print(f"\n{CYAN}OscProb: evaluating probability in vacuum for IO.{NC}")
 
         if nu_energy is not None:
             x = self.baseline * 1000 / nu_energy  # [m/MeV]
@@ -217,7 +225,7 @@ class OscillationProbability:
     def eval_matter_prob_no(self, nu_energy=None, plot_this=False):
 
         if self.verbose:
-            print("\nOscProb: evaluating probability in matter for NO.")
+            print(f"\n{CYAN}OscProb: evaluating probability in matter for NO.{NC}")
 
         if nu_energy is not None:
             x = self.baseline * 1000 / nu_energy  # [m/MeV]
@@ -268,7 +276,7 @@ class OscillationProbability:
     def eval_matter_prob_io(self, nu_energy=None, plot_this=False):
 
         if self.verbose:
-            print("\nOscProb: evaluating probability in matter for IO.")
+            print(f"\n{CYAN}OscProb: evaluating probability in matter for IO.{NC}")
 
         if nu_energy is not None:
             x = self.baseline * 1000 / nu_energy  # [m/MeV]
