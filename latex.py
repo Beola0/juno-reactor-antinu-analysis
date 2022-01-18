@@ -13,7 +13,7 @@ pgf_with_latex = {                      # setup matplotlib to use latex for outp
     "font.monospace": [],
     "axes.labelsize": 16,               # LaTeX default is 10pt font.
     "font.size": 16,
-    "legend.fontsize": 15,               # Make the legend/label fonts
+    "legend.fontsize": 13,               # Make the legend/label fonts
     "xtick.labelsize": 13,               # a little smaller
     "ytick.labelsize": 13,
 #    "figure.figsize": figsize(0.9),     # default fig size of 0.9 textwidth

@@ -18,6 +18,14 @@ from detector_response import DetectorResponse
 # - use DetectorResponse as parent class? --> move a b c in Detector Response --> DONE
 # - include backgrounds
 
+HEADER = '\033[95m'
+BLUE = '\033[94m'
+CYAN = '\033[96m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+NC = '\033[0m'
+
 
 style = {
     "NO": 'b',
@@ -74,7 +82,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
     def get_accidental_bkg(self, nu_energy_):
         if self.verbose:
-            print('Reading accidental background from file')
+            print(f"{BLUE}Reading accidental background from file{NC}")
 
         input_ = uproot.open(self.root_file + ":AccBkgHistogramAD").to_numpy()
 
@@ -88,7 +96,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
     def get_alpha_n_bkg(self, nu_energy_):
         if self.verbose:
-            print('Reading alpha capture background from file')
+            print(f"{BLUE}Reading alpha capture background from file{NC}")
 
         input_ = uproot.open(self.root_file + ":AlphaNBkgHistogramAD").to_numpy()
 
@@ -102,7 +110,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
     def get_fast_n_bkg(self, nu_energy_):
         if self.verbose:
-            print('Reading fast neutron background from file')
+            print(f"{BLUE}Reading fast neutron background from file{NC}")
 
         input_ = uproot.open(self.root_file + ":FnBkgHistogramAD").to_numpy()
 
@@ -116,7 +124,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
     def get_geo_nu_bkg(self, nu_energy_):
         if self.verbose:
-            print('Reading geo neutrino background from file')
+            print(f"{BLUE}Reading geo neutrino background from file{NC}")
 
         input_ = uproot.open(self.root_file + ":GeoNuHistogramAD").to_numpy()
 
@@ -130,7 +138,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
 
     def get_li_he_bkg(self, nu_energy_):
         if self.verbose:
-            print('Reading Li9/He8 background from file')
+            print(f"{BLUE}Reading Li9/He8 background from file{NC}")
 
         input_ = uproot.open(self.root_file + ":Li9BkgHistogramAD").to_numpy()
 
@@ -151,7 +159,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.osc_spect_no = 0.
         if self.path_to_reactor_list is not None:
             if self.verbose:
-                print("Using reactor list as input.")
+                print(f"\n{GREEN}Using reactor list as input.{NC}")
             self.get_reactor_list()
             nn = len(self.r_list["baseline"])
             for i_ in np.arange(nn):
@@ -163,11 +171,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                                                        bool_snf=bool_snf, bool_noneq=bool_noneq)
                 if matter:
                     if self.verbose:
-                        print("\nevaluating oscillation probability in matter - N")
+                        print(f"\n{CYAN}evaluating oscillation probability in matter - N{NC}")
                     prob = OscillationProbability.eval_matter_prob_no(self, nu_energy_)
                 else:
                     if self.verbose:
-                        print("\nevaluating oscillation probability in vacuum - N")
+                        print(f"\n{CYAN}evaluating oscillation probability in vacuum - N{NC}")
                     prob = OscillationProbability.eval_vacuum_prob_no(self, nu_energy_)
                 appo = self.spectrum_unosc * prob
                 if runtime:
@@ -183,11 +191,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ssun = self.spectrum_unosc
             if matter:
                 if self.verbose:
-                    print("\nevaluating oscillation probability in matter - N")
+                    print(f"\n{CYAN}evaluating oscillation probability in matter - N{NC}")
                 prob = OscillationProbability.eval_matter_prob_no(self, nu_energy_)
             else:
                 if self.verbose:
-                    print("\nevaluating oscillation probability in vacuum - N")
+                    print(f"\n{CYAN}evaluating oscillation probability in vacuum - N{NC}")
                 prob = OscillationProbability.eval_vacuum_prob_no(self, nu_energy_)
             self.osc_spect_no = self.spectrum_unosc * prob
             if runtime:
@@ -229,7 +237,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.osc_spect_io = 0.
         if self.path_to_reactor_list is not None:
             if self.verbose:
-                print("Using reactor list as input.")
+                print(f"{GREEN}Using reactor list as input.{NC}")
             self.get_reactor_list()
             nn = len(self.r_list["baseline"])
             for i_ in np.arange(nn):
@@ -241,11 +249,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                                                        bool_snf=bool_snf, bool_noneq=bool_noneq)
                 if matter:
                     if self.verbose:
-                        print("\nevaluating oscillation probability in matter - I")
+                        print(f"\n{CYAN}evaluating oscillation probability in matter - I{NC}")
                     prob = OscillationProbability.eval_matter_prob_io(self, nu_energy_)
                 else:
                     if self.verbose:
-                        print("\nevaluating oscillation probability in vacuum - I")
+                        print(f"\n{CYAN}evaluating oscillation probability in vacuum - I{NC}")
                     prob = OscillationProbability.eval_vacuum_prob_io(self, nu_energy_)
                 appo = self.spectrum_unosc * prob
                 if runtime:
@@ -261,11 +269,11 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             ssun = self.spectrum_unosc
             if matter:
                 if self.verbose:
-                    print("\nevaluating oscillation probability in matter - I")
+                    print(f"\n{CYAN}evaluating oscillation probability in matter - I{NC}")
                 prob = OscillationProbability.eval_matter_prob_io(self, nu_energy_)
             else:
                 if self.verbose:
-                    print("\nevaluating oscillation probability in vacuum - I")
+                    print(f"\n{CYAN}evaluating oscillation probability in vacuum - I{NC}")
                 prob = OscillationProbability.eval_vacuum_prob_io(self, nu_energy_)
             self.osc_spect_io = self.spectrum_unosc * prob
             if runtime:
@@ -345,7 +353,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         appo_ss = self.get_singles()
 
         if self.verbose:
-            print('adding experimental resolution via numerical convolution, it might take some time...')
+            print(f"{CYAN}adding experimental resolution via numerical convolution, it might take some time...{NC}")
         self.resol_no = DetectorResponse.gaussian_smearing_abc(self, self.osc_spect_no, dep_energy, visible_energy_)
         if runtime:
             self.resol_no = self.resol_no * self.IBD_efficiency * self.daq_time * self.duty_cycle
@@ -389,7 +397,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         appo_ss = self.get_singles()
 
         if self.verbose:
-            print('adding experimental resolution via numerical convolution, it might take some time...')
+            print(f"{CYAN}adding experimental resolution via numerical convolution, it might take some time...{NC}")
         self.resol_io = DetectorResponse.gaussian_smearing_abc(self, self.osc_spect_io, dep_energy, visible_energy_)
         if runtime:
             self.resol_io = self.resol_io * self.IBD_efficiency * self.daq_time * self.duty_cycle
