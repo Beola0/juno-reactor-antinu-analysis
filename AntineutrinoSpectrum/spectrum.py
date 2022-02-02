@@ -5,7 +5,7 @@ from scipy.interpolate import interp1d
 import pandas as pd
 import uproot
 from plot import plot_function
-from reactor import ReactorSpectrum
+from reactor import UnoscillatedReactorSpectrum
 from oscillation import OscillationProbability
 from detector_response import DetectorResponse
 
@@ -34,10 +34,10 @@ style = {
 }
 
 
-class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorResponse):
+class OscillatedSpectrum(OscillationProbability, UnoscillatedReactorSpectrum, DetectorResponse):
 
     def __init__(self, inputs_json_):
-        ReactorSpectrum.__init__(self, inputs_json_)
+        UnoscillatedReactorSpectrum.__init__(self, inputs_json_)
         OscillationProbability.__init__(self, inputs_json_)
         DetectorResponse.__init__(self, inputs_json_)
 
@@ -163,12 +163,13 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             self.get_reactor_list()
             nn = len(self.r_list["baseline"])
             for i_ in np.arange(nn):
-                ReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
-                ReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
+                UnoscillatedReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
+                UnoscillatedReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
                 OscillationProbability.set_baseline(self, self.r_list["baseline"][i_])
-                ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
-                                                       which_xsec=which_xsec, which_isospectrum=which_isospectrum,
-                                                       bool_snf=bool_snf, bool_noneq=bool_noneq)
+                UnoscillatedReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                                   which_xsec=which_xsec,
+                                                                   which_isospectrum=which_isospectrum,
+                                                                   bool_snf=bool_snf, bool_noneq=bool_noneq)
                 if matter:
                     if self.verbose:
                         print(f"\n{CYAN}evaluating oscillation probability in matter - N{NC}")
@@ -185,9 +186,10 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                 ssun += self.spectrum_unosc
                 self.osc_spect_no += appo
         else:
-            ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
-                                                   which_xsec=which_xsec, which_isospectrum=which_isospectrum,
-                                                   bool_snf=bool_snf, bool_noneq=bool_noneq)
+            UnoscillatedReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                               which_xsec=which_xsec,
+                                                               which_isospectrum=which_isospectrum,
+                                                               bool_snf=bool_snf, bool_noneq=bool_noneq)
             ssun = self.spectrum_unosc
             if matter:
                 if self.verbose:
@@ -241,12 +243,13 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
             self.get_reactor_list()
             nn = len(self.r_list["baseline"])
             for i_ in np.arange(nn):
-                ReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
-                ReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
+                UnoscillatedReactorSpectrum.set_baseline(self, self.r_list["baseline"][i_])
+                UnoscillatedReactorSpectrum.set_th_power(self, self.r_list["thermal_power"][i_])
                 OscillationProbability.set_baseline(self, self.r_list["baseline"][i_])
-                ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
-                                                       which_xsec=which_xsec, which_isospectrum=which_isospectrum,
-                                                       bool_snf=bool_snf, bool_noneq=bool_noneq)
+                UnoscillatedReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                                   which_xsec=which_xsec,
+                                                                   which_isospectrum=which_isospectrum,
+                                                                   bool_snf=bool_snf, bool_noneq=bool_noneq)
                 if matter:
                     if self.verbose:
                         print(f"\n{CYAN}evaluating oscillation probability in matter - I{NC}")
@@ -263,9 +266,10 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
                 ssun += self.spectrum_unosc
                 self.osc_spect_io += appo
         else:
-            ReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
-                                                   which_xsec=which_xsec, which_isospectrum=which_isospectrum,
-                                                   bool_snf=bool_snf, bool_noneq=bool_noneq)
+            UnoscillatedReactorSpectrum.antinu_spectrum_no_osc(self, nu_energy_,
+                                                               which_xsec=which_xsec,
+                                                               which_isospectrum=which_isospectrum,
+                                                               bool_snf=bool_snf, bool_noneq=bool_noneq)
             ssun = self.spectrum_unosc
             if matter:
                 if self.verbose:
@@ -463,7 +467,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.sin2_13_no = t13
         self.deltam_3l_no = m3l  # [eV^2]
 
-        ReactorSpectrum.unosc_spectrum(self, E)
+        UnoscillatedReactorSpectrum.unosc_spectrum(self, E)
         OscillationProbability.eval_prob(self, E, 1)
 
         self.norm_osc_spect_no = self.norm_spectrum_un * self.prob_E_no
@@ -483,7 +487,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         self.sin2_13_io = t13
         self.deltam_3l_io = m3l  # [eV^2]
 
-        ReactorSpectrum.unosc_spectrum(self, E)
+        UnoscillatedReactorSpectrum.unosc_spectrum(self, E)
         OscillationProbability.eval_prob(self, E, 1)
 
         self.norm_osc_spect_io = self.norm_spectrum_un * self.prob_E_io
@@ -506,7 +510,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         E_nu = np.arange(1.806, 30.01, 0.01)
         E_dep = E_nu - 0.8
 
-        ReactorSpectrum.unosc_spectrum(self, E_nu)
+        UnoscillatedReactorSpectrum.unosc_spectrum(self, E_nu)
         OscillationProbability.eval_prob(self, E_nu, 1)
 
         self.norm_osc_spect_no = self.norm_spectrum_un * self.prob_E_no
@@ -532,7 +536,7 @@ class OscillatedSpectrum(OscillationProbability, ReactorSpectrum, DetectorRespon
         E_nu = np.arange(1.806, 30.01, 0.01)
         E_dep = E_nu - 0.8
 
-        ReactorSpectrum.unosc_spectrum(self, E_nu)
+        UnoscillatedReactorSpectrum.unosc_spectrum(self, E_nu)
         OscillationProbability.eval_prob(self, E_nu, -1)
 
         self.norm_osc_spect_io = self.norm_spectrum_un * self.prob_E_io

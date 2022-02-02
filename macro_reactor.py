@@ -9,7 +9,7 @@ cwd = os.getcwd()
 sys.path.insert(0, cwd + '/AntineutrinoSpectrum')
 import latex
 from plot import plot_function
-from reactor import ReactorSpectrum
+from reactor import UnoscillatedReactorSpectrum
 
 
 ### MAIN ###
@@ -26,21 +26,21 @@ E = np.arange(1.925, 8.65, 0.01)  # in MeV (for DYB reactor model)
 
 
 ### REACTOR SPECTRUM
-react = ReactorSpectrum(inputs_json)
-flux_v = react.isotopic_spectrum_vogel(E, plot_this=False)
-flux_hm = react.isotopic_spectrum_hubermueller(E, plot_this=False)
+react = UnoscillatedReactorSpectrum(inputs_json)
+flux_v = react.isotopic_spectrum_vogel_parametric(E, plot_this=False)
+flux_hm = react.isotopic_spectrum_hubermueller_parametric(E, plot_this=False)
 flux_dyb = react.isotopic_spectrum_dyb(E, plot_this=False)
-reactor_spectrum_v = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='V', plot_this=False)
-reactor_spectrum_hm = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='HM', plot_this=False)
-reactor_spectrum_dyb = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', plot_this=False)
+reactor_spectrum_v = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='V', plot_this=False)
+reactor_spectrum_hm = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='HM', plot_this=False)
+reactor_spectrum_dyb = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='DYB', plot_this=False)
 
-nominal = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='HM', plot_this=False)
-nominal_snf = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='HM', bool_snf=True, plot_this=False)
-nominal_noneq = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='HM', bool_noneq=True, plot_this=False)
-nominal_snf_noneq = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='HM', bool_snf=True, bool_noneq=True, plot_this=False)
-nominal_hm = react.antinu_spectrum_no_osc(E, which_xsec='SV', which_isospectrum='DYB', plot_this=False)
+nominal = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='HM', plot_this=False)
+nominal_snf = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='HM', bool_snf=True, plot_this=False)
+nominal_noneq = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='HM', bool_noneq=True, plot_this=False)
+nominal_snf_noneq = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='HM', bool_snf=True, bool_noneq=True, plot_this=False)
+nominal_hm = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='DYB', plot_this=False)
 
-xsec_sv = react.cross_section_sv(E)
+xsec_sv = react.eval_xs(E, which_xs="SV_CI")
 # xsec_vb = react.cross_section_vb(E)
 # xsec = react.cross_section(E)
 

@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-from scipy.interpolate import interp1d
-import math
 import sys
+import math
 import uproot
+from scipy.interpolate import interp1d
 from plot import plot_function
 
 
@@ -12,11 +12,13 @@ from plot import plot_function
 # - create spectrum from inputs, like DYB spectrum --> DONE
 # - remove part for plotting --> improved, DONE
 # - add methods to change fission fractions --> DONE
-# - move IBD part to DetectorResponse (???)
+# - move IBD part to DetectorResponse (???) --> NOPE
 # - add SNF and NonEq contributions --> DONE
 # - add nuisances: for SNF and NonEq
-# - check interpolation and extrapolation methods for DYB-based reactor model
+# - check interpolation and extrapolation methods for DYB-based reactor model - WIP
 # - correct NonEq for DYB model --> DONE
+# - include all possible scenarios for reactor model: EF tabulated data, HM tabulated data,
+#   SNF applied at the end, NonEq correction applied only to some isotopes, time dependence, ...
 
 HEADER = '\033[95m'
 BLUE = '\033[94m'
@@ -26,8 +28,14 @@ YELLOW = '\033[93m'
 RED = '\033[91m'
 NC = '\033[0m'
 
+names_huber = ["energy", "spectrum", "neg_stat", "pos_stat", "neg_bias", "pos_bias", "neg_z", "pos_z", "neg_wm",
+               "pos_wm", "neg_norm", "pos_norm", "neg_tot", "pos_tot"]
+names_mueller = ["energy", "spectrum"]
+names_ef = ["energy", "spectrum"]
+names_dyb = ["energy", "IBD_spectrum", "spectrum"]
 
-class ReactorSpectrum:
+
+class UnoscillatedReactorSpectrum:
 
     def __init__(self, inputs_json_):
 
@@ -46,7 +54,26 @@ class ReactorSpectrum:
 
         self.verbose = inputs_json_["verbose"]
         self.root_file = inputs_json_["ROOT_file"]
+        self.path_to_input_spectra = inputs_json_["input_spectra"]
         self.inputs_json = inputs_json_
+
+        self.u5_huber = pd.DataFrame()
+        self.pu9_huber = pd.DataFrame()
+        self.pu1_huber = pd.DataFrame()
+        self.u5_mueller = pd.DataFrame()
+        self.u8_mueller = pd.DataFrame()
+        self.pu9_mueller = pd.DataFrame()
+        self.pu1_mueller = pd.DataFrame()
+        self.u5_ef = pd.DataFrame()
+        self.u8_ef = pd.DataFrame()
+        self.pu9_ef = pd.DataFrame()
+        self.pu1_ef = pd.DataFrame()
+        self.u5_dyb = pd.DataFrame()
+        self.pu_combo_dyb = pd.DataFrame()
+        self.total_dyb = pd.DataFrame()
+
+        self.xs_strumiavissani_commoninputs = pd.DataFrame()
+        self.xs_vogelbeacom_commoninputs = pd.DataFrame()
 
         self.iso_spectrum = 0.
         self.react_spectrum = 0.
@@ -61,9 +88,12 @@ class ReactorSpectrum:
 
         self.bool_snf = False
         self.bool_noneq = False
-        self.which_xsec = ''
+        # self.which_xsec = ''
         self.which_isospectrum = ''
 
+    #####################
+    # Fission fractions #
+    #####################
     def set_fission_fractions(self, f235u_, f239pu_, f238u_, f241pu_):
         self.fiss_frac_235u = f235u_
         self.fiss_frac_239pu = f239pu_
@@ -94,6 +124,9 @@ class ReactorSpectrum:
     def get_f241pu(self):
         return self.fiss_frac_241pu
 
+    ####################
+    # Fission energies #
+    ####################
     def set_fission_energies(self, e235u_, e239pu_, e238u_, e241pu_):
         self.fiss_en_235u = e235u_
         self.fiss_en_239pu = e239pu_
@@ -124,6 +157,9 @@ class ReactorSpectrum:
     def get_e241pu(self):
         return self.fiss_en_241pu
 
+    ############################
+    # Thermal power + baseline #
+    ############################
     def set_th_power(self, val_):
         self.thermal_power = val_
 
@@ -147,7 +183,7 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_snf_ratio(self, nu_energy_):
         if self.verbose:
-            print(f"{BLUE}Reading SNF from file{NC}")
+            print(f"{BLUE}Reading SNF from Common Inputs{NC}")
 
         input_ = uproot.open(self.root_file + ":SNF_FluxRatio").to_numpy()
 
@@ -162,7 +198,7 @@ class ReactorSpectrum:
     ### from DYB arXiv:1607.05378 - common inputs
     def get_noneq_ratio(self, nu_energy_):
         if self.verbose:
-            print(f"{BLUE}Reading NonEq from file{NC}")
+            print(f"{BLUE}Reading NonEq from Common Inputs{NC}")
 
         input_ = uproot.open(self.root_file + ":NonEq_FluxRatio").to_numpy()
 
@@ -174,9 +210,10 @@ class ReactorSpectrum:
         self.noneq = f_appo(nu_energy_)
         return self.noneq
 
+    ### from common inputs
     def get_dybfluxbump_ratio(self, nu_energy_):
         if self.verbose:
-            print(f"{BLUE}Reading DYB flux bump ratio from file{NC}")
+            print(f"{BLUE}Reading DYB flux bump ratio from Common Inputs{NC}")
 
         # input_[0] are the values(), input_[1] are axis().edges()
         input_ = uproot.open(self.root_file + ":DYBFluxBump_ratio").to_numpy()
@@ -189,11 +226,224 @@ class ReactorSpectrum:
         self.dybfluxdump = f_appo(nu_energy_)
         return self.dybfluxdump
 
-    def isotopic_spectrum_vogel(self, nu_energy_, bool_noneq=False, plot_this=False):
+    ########################
+    # Huber tabulated data #
+    ########################
+    def get_235u_huber(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Huber 235U{NC}")
+        self.u5_huber = pd.read_csv(self.path_to_input_spectra+"U235-anti-neutrino-flux-250keV.txt", sep='\t', skiprows=19,
+                                    header=None, index_col=0, names=names_huber)
+        return self.u5_huber
+
+    def get_239pu_huber(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Huber 239Pu{NC}")
+        self.pu9_huber = pd.read_csv(self.path_to_input_spectra + "Pu239-anti-neutrino-flux-250keV.txt", sep='\t',
+                                     skiprows=19, header=None, index_col=0, names=names_huber)
+        return self.pu9_huber
+
+    def get_241pu_huber(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Huber 241Pu{NC}")
+        self.pu1_huber = pd.read_csv(self.path_to_input_spectra + "Pu241-anti-neutrino-flux-250keV.txt", sep='\t',
+                                     skiprows=19, header=None, index_col=0, names=names_huber)
+        return self.pu1_huber
+
+    ##########################
+    # Mueller tabulated data #
+    ##########################
+    def get_235u_mueller(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Mueller 235U{NC}")
+        self.u5_mueller = pd.read_csv(self.path_to_input_spectra+"u235_mueller.csv", sep=',', skiprows=1,
+                                      header=None, index_col=0, names=names_mueller)
+        return self.u5_mueller
+
+    def get_238u_mueller(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Mueller 238U{NC}")
+        self.u8_mueller = pd.read_csv(self.path_to_input_spectra+"u238_mueller.csv", sep=',', skiprows=1,
+                                      header=None, index_col=0, names=names_mueller)
+        return self.u8_mueller
+
+    def get_239pu_mueller(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Mueller 239Pu{NC}")
+        self.pu9_mueller = pd.read_csv(self.path_to_input_spectra+"pu239_mueller.csv", sep=',', skiprows=1,
+                                       header=None, index_col=0, names=names_mueller)
+        return self.pu9_mueller
+
+    def get_241pu_mueller(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Mueller 241Pu{NC}")
+        self.pu1_mueller = pd.read_csv(self.path_to_input_spectra+"pu241_mueller.csv", sep=',', skiprows=1,
+                                       header=None, index_col=0, names=names_mueller)
+        return self.pu1_mueller
+
+    ##################################
+    # Estienne-Fallot tabulated data #
+    ##################################
+    def get_235u_ef(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Estienne-Fallot 235U{NC}")
+        self.u5_ef = pd.read_csv(self.path_to_input_spectra + "u235_EF.csv", sep=',', skiprows=1,
+                                 header=None, index_col=0, names=names_ef)
+        return self.u5_ef
+
+    def get_238u_ef(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Estienne-Fallot 238U{NC}")
+        self.u8_ef = pd.read_csv(self.path_to_input_spectra + "u238_EF.csv", sep=',', skiprows=1,
+                                 header=None, index_col=0, names=names_ef)
+        return self.u8_ef
+
+    def get_239pu_ef(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Estienne-Fallot 239Pu{NC}")
+        self.pu9_ef = pd.read_csv(self.path_to_input_spectra + "pu239_EF.csv", sep=',', skiprows=1,
+                                  header=None, index_col=0, names=names_ef)
+        return self.pu9_ef
+
+    def get_241pu_ef(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading Estienne-Fallot 241Pu{NC}")
+        self.pu1_ef = pd.read_csv(self.path_to_input_spectra + "pu241_EF.csv", sep=',', skiprows=1,
+                                  header=None, index_col=0, names=names_ef)
+        return self.pu1_ef
+
+    ########################
+    # DYB unfolded spectra #
+    ########################
+    def get_235u_dyb(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading DYB unfolded 235U{NC}")
+        self.u5_dyb = pd.read_csv(self.path_to_input_spectra + "u235_unfolded_DYB.csv", sep=',', skiprows=1,
+                                  header=None, index_col=0, names=names_ef)
+        return self.u5_dyb
+
+    def get_pu_combo_dyb(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading DYB unfolded Pu combo{NC}")
+        self.pu_combo_dyb = pd.read_csv(self.path_to_input_spectra + "pu_combo_unfolded_DYB.csv", sep=',', skiprows=1,
+                                        header=None, index_col=0, names=names_ef)
+        return self.pu_combo_dyb
+
+    def get_total_dyb(self):
+        if self.verbose:
+            print(f"\n{BLUE}Isotopic spectrum: Reading DYB unfolded total{NC}")
+        self.total_dyb = pd.read_csv(self.path_to_input_spectra + "total_unfolded_DYB.csv", sep=',', skiprows=1,
+                                     header=None, index_col=0, names=names_ef)
+        return self.total_dyb
+
+    ###############################
+    # Evaluating isotopic spectra #
+    ###############################
+    @staticmethod
+    def interpolating_function(df_, x_, loc_):
+        f_appo = interp1d(df_.index, df_.iloc[:, loc_].apply(lambda x: math.log(x)),
+                          kind='linear', fill_value="extrapolate")
+        return np.exp(f_appo(x_))
+
+    def eval_235u(self, nu_energy_, which_input='DYB'):
+        if self.verbose:
+            print(f"\n{CYAN}Isotopic spectrum: Using {which_input} for 235U{NC}")
+        if which_input == 'Huber':
+            if self.u5_huber.empty:
+                self.get_235u_huber()
+            return self.interpolating_function(self.u5_huber, nu_energy_, 0)
+        elif which_input == 'Mueller':
+            if self.u5_mueller.empty:
+                self.get_235u_mueller()
+            return self.interpolating_function(self.u5_mueller, nu_energy_, 0)
+        elif which_input == 'EF':
+            if self.u5_ef.empty:
+                self.get_235u_ef()
+            return self.interpolating_function(self.u5_ef, nu_energy_, 0)
+        elif which_input == 'DYB':
+            if self.u5_dyb.empty:
+                self.get_235u_dyb()
+            return self.interpolating_function(self.u5_dyb, nu_energy_, 1)
+        else:
+            print("Error")
+            sys.exit()
+
+    def eval_238u(self, nu_energy_, which_input='Mueller'):
+        if self.verbose:
+            print(f"\n{CYAN}Isotopic spectrum: Using {which_input} for 238U{NC}")
+        if which_input == 'Mueller':
+            if self.u8_mueller.empty:
+                self.get_238u_mueller()
+            return self.interpolating_function(self.u8_mueller, nu_energy_, 0)
+        elif which_input == 'EF':
+            if self.u8_ef.empty:
+                self.get_238u_ef()
+            return self.interpolating_function(self.u8_ef, nu_energy_, 0)
+        else:
+            print("Error")
+            sys.exit()
+
+    def eval_239pu(self, nu_energy_, which_input='Huber'):
+        if self.verbose:
+            print(f"\n{CYAN}Isotopic spectrum: Using {which_input} for 239Pu/PuCombo{NC}")
+        if which_input == 'Huber':
+            if self.pu9_huber.empty:
+                self.get_239pu_huber()
+            return self.interpolating_function(self.pu9_huber, nu_energy_, 0)
+        elif which_input == 'Mueller':
+            if self.pu9_mueller.empty:
+                self.get_239pu_mueller()
+            return self.interpolating_function(self.pu9_mueller, nu_energy_, 0)
+        elif which_input == 'EF':
+            if self.pu9_ef.empty:
+                self.get_239pu_ef()
+            return self.interpolating_function(self.pu9_ef, nu_energy_, 0)
+        elif which_input == 'DYB_combo':
+            if self.pu_combo_dyb.empty:
+                self.get_pu_combo_dyb()
+            return self.interpolating_function(self.pu_combo_dyb, nu_energy_, 1)
+        else:
+            print("Error")
+            sys.exit()
+
+    def eval_241pu(self, nu_energy_, which_input='Huber'):
+        if self.verbose:
+            print(f"\n{CYAN}Isotopic spectrum: Using {which_input} for 241Pu{NC}")
+        if which_input == 'Huber':
+            if self.pu1_huber.empty:
+                self.get_241pu_huber()
+            return self.interpolating_function(self.pu1_huber, nu_energy_, 0)
+        elif which_input == 'Mueller':
+            if self.pu1_mueller.empty:
+                self.get_241pu_mueller()
+            return self.interpolating_function(self.pu1_mueller, nu_energy_, 0)
+        elif which_input == 'EF':
+            if self.pu1_ef.empty:
+                self.get_241pu_ef()
+            return self.interpolating_function(self.pu1_ef, nu_energy_, 0)
+        else:
+            print("Error")
+            sys.exit()
+
+    def eval_total(self, nu_energy_, which_input="DYB"):
+        if self.verbose:
+            print(f"\n{CYAN}Isotopic spectrum: Using {which_input} for total{NC}")
+        if which_input == 'DYB':
+            if self.total_dyb.empty:
+                self.get_total_dyb()
+            return self.interpolating_function(self.total_dyb, nu_energy_, 1)
+        else:
+            print("Error")
+            sys.exit()
+
+    #####################
+    # Parametric Models #
+    #####################
+    def isotopic_spectrum_vogel_parametric(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'V'
         if self.verbose:
-            print(f"\n{CYAN}Using Vogel isotopic spectra{NC}")
+            print(f"\n{CYAN}Using Vogel isotopic spectra with exp-pol parametrization{NC}")
 
         ### params taken from Vogel, Engel, PRD 39-11 pp 3378, 1989
         ### exponential of a polynomial of second order
@@ -229,11 +479,11 @@ class ReactorSpectrum:
 
         return self.iso_spectrum
 
-    def isotopic_spectrum_hubermueller(self, nu_energy_, bool_noneq=False, plot_this=False):
+    def isotopic_spectrum_hubermueller_parametric(self, nu_energy_, bool_noneq=False, plot_this=False):
 
         self.which_isospectrum = 'HM'
         if self.verbose:
-            print(f"\n{CYAN}Using Huber+Mueller isotopic spectra{NC}")
+            print(f"\n{CYAN}Using Huber+Mueller isotopic spectra with exp-pol parametrization{NC}")
 
         ### params taken from Mueller PRC 83 (2011) for 238U and Huber PRC 84 (2011) for others
         ### exponential of a polynomial of fifth order
@@ -292,12 +542,12 @@ class ReactorSpectrum:
         df_241 = self.fiss_frac_241pu - f241_dyb
 
         ### unfolded spectra from DYB, arXiv:2102.04614
-        unfolded_spectrum = pd.read_csv("Inputs/spectra/total_unfolded_DYB.txt", sep="\t",
-                                        names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=0)
-        unfolded_u235 = pd.read_csv("Inputs/spectra/u235_unfolded_DYB.txt", sep="\t",
-                                    names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=0)
-        unfolded_pu_combo = pd.read_csv("Inputs/spectra/pu_combo_unfolded_DYB.txt", sep="\t",
-                                        names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=0)
+        unfolded_spectrum = pd.read_csv("Inputs/spectra/total_unfolded_DYB.csv", sep=",", skiprows=1,
+                                        names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=None)
+        unfolded_u235 = pd.read_csv("Inputs/spectra/u235_unfolded_DYB.csv", sep=",", skiprows=1,
+                                    names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=None)
+        unfolded_pu_combo = pd.read_csv("Inputs/spectra/pu_combo_unfolded_DYB.csv", sep=",", skiprows=1,
+                                        names=["bin_center", "IBD_spectrum", "isotopic_spectrum"], header=None)
 
         s_total = interp1d(unfolded_spectrum["bin_center"], unfolded_spectrum["isotopic_spectrum"], kind='cubic')
         s_235 = interp1d(unfolded_u235["bin_center"], unfolded_u235["isotopic_spectrum"], kind='cubic')
@@ -328,9 +578,9 @@ class ReactorSpectrum:
         const = 6.241509e21
 
         if which_isospectrum == 'V':
-            self.isotopic_spectrum_vogel(nu_energy_, bool_noneq=bool_noneq)
+            self.isotopic_spectrum_vogel_parametric(nu_energy_, bool_noneq=bool_noneq)
         elif which_isospectrum == 'HM':
-            self.isotopic_spectrum_hubermueller(nu_energy_, bool_noneq=bool_noneq)
+            self.isotopic_spectrum_hubermueller_parametric(nu_energy_, bool_noneq=bool_noneq)
         elif which_isospectrum == 'DYB':
             self.isotopic_spectrum_dyb(nu_energy_, bool_noneq=bool_noneq)
         else:
@@ -385,8 +635,9 @@ class ReactorSpectrum:
 
         return self.react_flux
 
-    ### TODO: move cross section to DetectorResponse class (???)
-
+    #####################
+    # IBD cross section #
+    #####################
     def eval_n_protons(self):
 
         target_mass = self.inputs_json["detector"]["mass"] * 1000 * 1000.
@@ -397,56 +648,32 @@ class ReactorSpectrum:
 
         return self.proton_number
 
-    ### cross section from Strumia and Vissani - common inputs
-    def cross_section_sv(self, nu_energy_):
-
-        self.which_xsec = 'SV'
+    def get_xs_strumiavissani_commoninputs(self):
         if self.verbose:
-            print(f"\n{CYAN}Using Strumia Vissani cross section from common inputs (default){NC}")
-
-        if self.proton_number == 0.:
-            self.eval_n_protons()
-
+            print(f"\n{CYAN}Reading Strumia-Vissani cross section from common inputs{NC}")
         input_ = uproot.open(self.root_file + ":IBDXsec_StrumiaVissani").to_numpy()
-
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
             xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
+        self.xs_strumiavissani_commoninputs = pd.DataFrame(input_[0], index=xx, columns=["cross_section"])
+        self.xs_strumiavissani_commoninputs.index.rename("energy", inplace=True)
+        return self.xs_strumiavissani_commoninputs
 
-        f_appo = interp1d(xx, input_[0])
-
-        self.x_sec = f_appo(nu_energy_)
-        self.x_sec_np = self.x_sec * self.proton_number
-
-        return self.x_sec_np
-
-    ### cross section from Vogel and Beacom - common inputs
-    def cross_section_vb(self, nu_energy_):
-
-        self.which_xsec = 'VB'
+    def get_xs_vogelbeacom_commoninputs(self):
         if self.verbose:
-            print(f"\n{CYAN}Using Vogel Beacom cross section from common inputs{NC}")
-
-        if self.proton_number == 0.:
-            self.eval_n_protons()
-
+            print(f"\n{CYAN}Reading Vogel-Beacom cross section from common inputs{NC}")
         input_ = uproot.open(self.root_file + ":IBDXsec_VogelBeacom_DYB").to_numpy()
-
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
             xx[i_] = (input_[1][i_ + 1] + input_[1][i_]) / 2.
-
-        f_appo = interp1d(xx, input_[0])
-
-        self.x_sec = f_appo(nu_energy_)
-        self.x_sec_np = self.x_sec * self.proton_number
-
-        return self.x_sec_np
+        self.xs_vogelbeacom_commoninputs = pd.DataFrame(input_[0], index=xx, columns=["cross_section"])
+        self.xs_vogelbeacom_commoninputs.index.rename("energy", inplace=True)
+        return self.xs_vogelbeacom_commoninputs
 
     ### cross section from Strumia, Vissani, https://arxiv.org/abs/astro-ph/0302055, eq. (25)
-    def cross_section(self, nu_energy_, plot_this=False):
-
-        self.which_xsec = 'std'
+    ### approximated formula for low energy (below 300 MeV)
+    @staticmethod
+    def eval_xs_strumiavissani_approx(nu_energy_):
 
         alpha = -0.07056
         beta = 0.02018
@@ -463,21 +690,47 @@ class ReactorSpectrum:
         appo_exp = alpha + beta * np.log(nu_energy_) + gamma * np.power(np.log(nu_energy_), 3)
         energy_exp = np.power(nu_energy_, appo_exp)
 
-        self.x_sec = const * p_e * positron_energy * energy_exp
+        return const * p_e * positron_energy * energy_exp
 
-        if self.proton_number == 0.:
-            self.eval_n_protons()
+    def eval_xs(self, nu_energy_, bool_protons=True, which_xs='SV_approx'):
 
-        self.x_sec_np = self.x_sec * self.proton_number
+        if which_xs == 'SV_CI':
+            if self.verbose:
+                print(f"\n{CYAN}Using Strumia-Vissani cross section from common inputs{NC}")
+            if self.xs_strumiavissani_commoninputs.empty:
+                self.get_xs_strumiavissani_commoninputs()
+            f_appo = interp1d(self.xs_strumiavissani_commoninputs.index,
+                              self.xs_strumiavissani_commoninputs["cross_section"])
+            self.x_sec = f_appo(nu_energy_)
+        elif which_xs == 'VB_CI':
+            if self.verbose:
+                print(f"\n{CYAN}Using Vogel-Beacom cross section from common inputs{NC}")
+            if self.xs_vogelbeacom_commoninputs.empty:
+                self.get_xs_vogelbeacom_commoninputs()
+            f_appo = interp1d(self.xs_vogelbeacom_commoninputs.index,
+                              self.xs_vogelbeacom_commoninputs["cross_section"])
+            self.x_sec = f_appo(nu_energy_)
+        elif which_xs == 'SV_approx':
+            if self.verbose:
+                print(f"\n{CYAN}Using Strumia-Vissani cross section - approximation for low energies{NC}")
+            self.x_sec = self.eval_xs_strumiavissani_approx(nu_energy_)
+        else:
+            print(f"\n{RED}Error: only 'SV_CI', 'VB_CI' or 'SV_approx' are accepted values for which_xs argument, " 
+                  f"in eval_xs function, ReactorSpectrum class.{NC}")
+            sys.exit()
 
-        if plot_this:
-            ylabel = r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]'
-            plot_function(x_=[nu_energy_], y_=[self.x_sec_np], label_=['IBD cross section'], styles=['k'],
-                          ylabel_=ylabel, xlim=[1.5, 10.5])
+        if bool_protons:
+            if self.proton_number == 0.:
+                self.eval_n_protons()
+            self.x_sec_np = self.x_sec * self.proton_number
+            return self.x_sec_np
 
-        return self.x_sec_np
+        return self.x_sec
 
-    def antinu_spectrum_no_osc(self, nu_energy_, which_xsec='SV', which_isospectrum='HM',
+    #################################
+    # Unoscillated Reactor Spectrum #
+    #################################
+    def antinu_spectrum_no_osc(self, nu_energy_, which_isospectrum='HM', which_xs='SV', bool_protons=True,
                                bool_snf=False, bool_noneq=False, plot_this=False):
 
         if which_isospectrum == 'V':
@@ -494,16 +747,9 @@ class ReactorSpectrum:
                   f"in antinu_spectrum_no_osc function, ReactorSpectrum class.{NC}")
             sys.exit()
 
-        if which_xsec == 'SV':
-            self.cross_section_sv(nu_energy_)
-        elif which_xsec == 'VB':
-            self.cross_section_vb(nu_energy_)
-        else:
-            print(f"\n{RED}Error: only 'SV' or 'VB' are accepted values for which_xsec argument, "
-                  f"in antinu_spectrum_nu_osc function, ReactorSpectrum class.{NC}")
-            sys.exit()
+        xs = self.eval_xs(nu_energy_, which_xs=which_xs, bool_protons=bool_protons)
 
-        self.spectrum_unosc = self.react_flux * self.x_sec_np
+        self.spectrum_unosc = self.react_flux * xs
 
         if plot_this:
             ylabel = r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]'
