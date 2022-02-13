@@ -2,16 +2,20 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as plticker
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import time
 import json
-import math
-import pandas as pd
+# import math
+# import pandas as pd
 from scipy.interpolate import interp1d, Akima1DInterpolator, UnivariateSpline
+from scipy import integrate
 cwd = os.getcwd()
 sys.path.insert(0, cwd + '/AntineutrinoSpectrum')
 import latex
 from plot import plot_function, plot_function_residual
 from reactor import UnoscillatedReactorSpectrum
+from oscillation import OscillationProbability
 
 
 ########################################################################################################################
@@ -77,33 +81,122 @@ unfolded_total = react.get_total_dyb()
 unfolded_u235 = react.get_235u_dyb()
 unfolded_pu_combo = react.get_pu_combo_dyb()
 
+# Haag
+u238_haag = react.get_238u_haag()
+
+# Kopeikin
+u235_k = react.get_235u_kopeikin()
+u238_k = react.get_238u_kopeikin()
+
+# DYB+PP
+u235_dyb_pp = react.get_235u_dyb_pp()
+pu239_dyb_pp = react.get_239pu_dyb_pp()
+
+xlim = [-0.2, 10.3]
+ylim = [-0.1, 3.1]
+
 if plot:
-    ylabel = r'isotopic spectrum [N$_{\nu}$/fission/MeV]'
-    plot_function(
+    ylabel = r'isotopic spectrum [N$_{\nu}$/\si{\MeV}/fission]'
+    ax = plot_function(
         x_=[u235_m.index, u238_m.index, pu239_m.index, pu241_m.index],
         y_=[u235_m["spectrum"], u238_m["spectrum"], pu239_m["spectrum"], pu241_m["spectrum"]],
         label_=[r'M '+U5, r'M '+U8, r'M '+Pu9, r'M '+Pu1],
-        styles=['b^', 'rs', 'gp', 'mH'], ylabel_=ylabel, xlim=None, ylim=None
+        styles=['b^', 'rs', 'gp', 'mH'], ylabel_=ylabel, xlim=xlim, ylim=ylim
     )
-    plot_function(
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
+    ax = plot_function(
         x_=[u235_h.index, pu239_h.index, pu241_h.index],
         y_=[u235_h["spectrum"], pu239_h["spectrum"], pu241_h["spectrum"]],
         label_=[r'H '+U5, r'H '+Pu9, r'H '+Pu1],
-        styles=['b^', 'gp', 'mH'], ylabel_=ylabel, xlim=None, ylim=None
+        styles=['b^', 'gp', 'mH'], ylabel_=ylabel, xlim=xlim, ylim=ylim
     )
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
     ax = plot_function(
         x_=[u235_ef.index, u238_ef.index, pu239_ef.index, pu241_ef.index],
         y_=[u235_ef["spectrum"], u238_ef["spectrum"], pu239_ef["spectrum"], pu241_ef["spectrum"]],
         label_=[r'EF '+U5, r'EF '+U8, r'EF '+Pu9, r'EF '+Pu1],
-        styles=['b^', 'rs', 'gp', 'mH'], ylabel_=ylabel, xlim=None, ylim=None
+        styles=['b^', 'rs', 'gp', 'mH'], ylabel_=ylabel, xlim=xlim, ylim=ylim
     )
     ax.axvline(1.806, 0, 1, color='k', linestyle=':')
-    plot_function(
+
+    ax = plot_function(
         x_=[unfolded_u235.index, unfolded_pu_combo.index, unfolded_total.index],
         y_=[unfolded_u235["spectrum"], unfolded_pu_combo["spectrum"], unfolded_total["spectrum"]],
         label_=[r'DYB '+U5, r'DYB Pu-comb', r'DYB tot'],
-        styles=['b^', 'rh', 'ko'], ylabel_=ylabel, xlim=None, ylim=None
+        styles=['b^', 'rh', 'ko'], ylabel_=ylabel, xlim=xlim, ylim=ylim
     )
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
+    ylabel_pp = r'reactor spectrum [\si{\centi\meter\squared}/\si{\MeV}/fission]'
+    ax = plot_function(
+        x_=[unfolded_u235.index, unfolded_pu_combo.index, unfolded_total.index],
+        y_=[unfolded_u235["IBD_spectrum"], unfolded_pu_combo["IBD_spectrum"], unfolded_total["IBD_spectrum"]],
+        label_=[r'DYB '+U5, r'DYB Pu-comb', r'DYB tot'],
+        styles=['b^', 'rh', 'ko'], ylabel_=ylabel_pp, xlim=xlim, ylim=None
+    )
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
+    ax = plot_function(
+        x_=[u235_dyb_pp.index, pu239_dyb_pp.index],
+        y_=[u235_dyb_pp["spectrum"], pu239_dyb_pp["spectrum"]],
+        label_=[r'DYB-PP '+U5, r'DYB-PP '+Pu9],
+        styles=['b^', 'gp'], ylabel_=ylabel_pp, xlim=xlim, ylim=None
+    )
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
+    ax = plot_function(
+        x_=[u238_haag.index], y_=[u238_haag["spectrum"]],
+        label_=[r'Haag ' + U8],
+        styles=['rs'], ylabel_=ylabel, xlim=xlim, ylim=ylim
+    )
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
+    ax = plot_function(
+        x_=[u235_k.index, u238_k.index], y_=[u235_k["spectrum"], u238_k["spectrum"]],
+        label_=[r'Kopeikin ' + U5, r'Kopeikin ' + U8],
+        styles=['b^', 'rs'], ylabel_=ylabel, xlim=xlim, ylim=ylim
+    )
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+
+    ax = plot_function(
+        x_=[u238_ef.index, u238_m.index, u238_haag.index, u238_k.index],
+        y_=[u238_ef["spectrum"], u238_m["spectrum"], u238_haag["spectrum"], u238_k["spectrum"]],
+        label_=[r'EF '+U8, r'M '+U8, r'Haag ' + U8, r'Kopeikin ' + U8],
+        styles=['ko', 'go', 'ro', 'yo'], ylabel_=ylabel, xlim=xlim, ylim=ylim
+    )
+    ax.axvline(1.806, 0, 1, color='k', linestyle=':')
+    # axins = inset_axes(ax, width="30%", height="20%", bbox_to_anchor=(.55, .2, 1.2, 2),
+    #                    bbox_transform=ax.transAxes, loc=3)
+    # axins.tick_params(labelleft=True, labelbottom=True)
+    # axins.plot(u238_haag.index, u238_haag["spectrum"], "ro", markersize=4)
+    # axins.plot(u238_haag.index, u238_k["spectrum"].iloc[4:-2], "yo", markersize=3)
+    # # axins.set_ylim(1.05, 1.06)
+    # axins.grid(alpha=0.65)
+    # axins.xaxis.set_major_locator(plticker.MultipleLocator(base=2.0))
+    # axins.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.5))
+    plot_function(
+        x_=[u238_haag.index, u238_haag.index],
+        y_=[u238_haag["spectrum"], u238_k["spectrum"].iloc[4:-2]],
+        label_=[r'Haag ' + U8, r'Kopeikin ' + U8],
+        styles=['ro', 'yo'], ylabel_=ylabel, xlim=None, ylim=None
+    )
+
+    plot_function(
+        x_=[u238_haag.index],
+        y_=[u238_haag["spectrum"]/u238_k["spectrum"].iloc[4:-2]],
+        # y_=[(u238_k["spectrum"].iloc[4:-2]-u238_haag["spectrum"])/u238_haag["spectrum"]],
+        label_=[r'Haag/Kopeikin ' + U8],
+        styles=['ro'], ylabel_=r'ratio', xlim=None, ylim=[1.05, 1.058]
+    )
+    # axins = inset_axes(ax, width="70%", height="40%", borderpad=3)
+    # axins.tick_params(labelleft=True, labelbottom=True)
+    # axins.plot(u238_haag.index, u238_haag["spectrum"] / u238_k["spectrum"].iloc[4:-2], "ro")
+    # axins.set_ylim(1.05, 1.06)
+    # axins.grid(alpha=0.65)
+    # axins.xaxis.set_major_locator(plticker.MultipleLocator(base=2.0))
+    # axins.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.5))
 
 
 ########################################################################################################################
@@ -112,17 +205,36 @@ if plot:
 plot = False
 E = np.arange(1.81, 10.01, 0.005)  # in MeV
 
+xs_dyb = unfolded_total["IBD_spectrum"]/unfolded_total["spectrum"]
+xs_dyb_5 = unfolded_u235["IBD_spectrum"]/unfolded_u235["spectrum"]
+xs_dyb_pu = unfolded_pu_combo["IBD_spectrum"]/unfolded_pu_combo["spectrum"]
+
 if plot:
     ylabel = r'$\sigma_{\text{IBD}}$ [\si{\centi\meter\squared}/proton]'
     # ylabel = r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]'
-    ax1, ax2 = plot_function_residual(
+    ax = plot_function_residual(
         x_=[E, E, E],
         y_=[react.eval_xs(E, which_xs="SV_CI", bool_protons=False),
             react.eval_xs(E, which_xs="VB_CI", bool_protons=False),
             react.eval_xs(E, which_xs="SV_approx", bool_protons=False)],
         label_=[r'SV$_\text{ci}$', r'VB$_\text{ci}$', r'SV$_\text{approx}$'], styles=['k-', 'r--', 'b-.'],
-        ylabel_=ylabel, ylim2=[-2, 5])
-    ax2.legend(loc='upper right')
+        ylabel_=ylabel, ylim2=[-2, 4]
+    )
+    ax[1].legend(loc='upper right')
+
+    plot_function(
+        x_=[unfolded_total.index, unfolded_u235.index, unfolded_pu_combo.index],
+        y_=[xs_dyb, xs_dyb_5, xs_dyb_pu], styles=['b.', 'r.', 'g.'],
+        label_=[r's total', r's u235', r's pu\_combo'], ylabel_=ylabel,
+    )
+
+    ax = plot_function_residual(
+        x_=[unfolded_total.index, unfolded_total.index, unfolded_u235.index, unfolded_pu_combo.index],
+        y_=[react.eval_xs(unfolded_total.index, which_xs="VB_CI", bool_protons=False), xs_dyb, xs_dyb_5, xs_dyb_pu],
+        styles=['k-', 'b.', 'r.', 'g.'],
+        label_=[r'VB\_CI', r's total', r's u235', r's pu\_combo'], ylabel_=ylabel,
+    )
+    ax[1].legend(loc='lower left')
 
 
 ########################################################################################################################
@@ -131,93 +243,85 @@ if plot:
 plot = False
 E = np.arange(1.81, 10.01, 0.005)  # in MeV - extrapolating where needed
 
-flux_hm = react.isotopic_spectrum_hubermueller_parametric(E, plot_this=False)  # with exp-polynomial formula
-xsec_sv = react.eval_xs(E, which_xs="SV_CI")  # SV IBD cross section from common inputs
-xsec_sv_dyb = react.eval_xs(unfolded_total.index, which_xs="SV_CI")  # for DYB binning
+std_hm = {
+    '235U': 'Huber',
+    '238U': 'Mueller',
+    '239Pu': 'Huber',
+    '241Pu': 'Huber'
+}
 
-# HM - exp-pol parametrization
-u235_hm = react.isotopic_spectrum_exp(E, params_u235)
-pu239_hm = react.isotopic_spectrum_exp(E, params_pu239)
-u238_hm = react.isotopic_spectrum_exp(E, params_u238)
-pu241_hm = react.isotopic_spectrum_exp(E, params_pu241)
+dyb_input = {
+    'total': 'DYB',
+    '235U': 'DYB',
+    '238U': 'Mueller',
+    '239Pu': 'DYB_combo',
+    '241Pu': 'Huber'
+}
+
+xsec_sv = react.eval_xs(E, which_xs="SV_CI", bool_protons=False)  # SV IBD cross section from common inputs
+xsec_sv_dyb = react.eval_xs(unfolded_total.index, which_xs="SV_CI", bool_protons=False)  # for DYB binning
 
 # with DYB binning (based on HM)
-u238_dyb = react.isotopic_spectrum_exp(unfolded_total.index, params_u238)
-pu241_dyb = react.isotopic_spectrum_exp(unfolded_total.index, params_pu241)
+u238_dyb = react.eval_238u(unfolded_total.index, which_input='Mueller')
+pu241_dyb = react.eval_241pu(unfolded_total.index, which_input='Huber')
 
 # interpolating DYB spectra + JUNO spectra
 juno_points = unfolded_total["spectrum"] + df_235 * unfolded_u235["spectrum"] \
               + df_239 * unfolded_pu_combo["spectrum"] + df_238 * u238_dyb + (df_241 - 0.183 * df_239) * pu241_dyb
 
 s_total_lin = interp1d(unfolded_total.index, unfolded_total["spectrum"], kind='linear', fill_value="extrapolate")
-s_235_lin = interp1d(unfolded_u235.index, unfolded_u235["spectrum"], kind='linear', fill_value="extrapolate")
-s_combo_lin = interp1d(unfolded_pu_combo.index, unfolded_pu_combo["spectrum"], kind='linear', fill_value="extrapolate")
-JUNO_lin = s_total_lin(E) + df_235 * s_235_lin(E) + df_239 * s_combo_lin(E) \
-                                + df_238 * u238_hm + (df_241 - 0.183 * df_239) * pu241_hm
-
 s_total_quad = interp1d(unfolded_total.index, unfolded_total["spectrum"], kind='quadratic', fill_value="extrapolate")
-s_235_quad = interp1d(unfolded_u235.index, unfolded_u235["spectrum"], kind='quadratic', fill_value="extrapolate")
-s_combo_quad = interp1d(unfolded_pu_combo.index, unfolded_pu_combo["spectrum"], kind='quadratic', fill_value="extrapolate")
-JUNO_quad = s_total_quad(E) + df_235 * s_235_quad(E) + df_239 * s_combo_quad(E) \
-                                + df_238 * u238_hm + (df_241 - 0.183 * df_239) * pu241_hm
-
 s_total_cub = interp1d(unfolded_total.index, unfolded_total["spectrum"], kind='cubic', fill_value="extrapolate")
-s_235_cub = interp1d(unfolded_u235.index, unfolded_u235["spectrum"], kind='cubic', fill_value="extrapolate")
-s_combo_cub = interp1d(unfolded_pu_combo.index, unfolded_pu_combo["spectrum"], kind='cubic', fill_value="extrapolate")
-JUNO_cub = s_total_cub(E) + df_235 * s_235_cub(E) + df_239 * s_combo_cub(E) \
-                                + df_238 * u238_hm + (df_241 - 0.183 * df_239) * pu241_hm
-
 s_total_akima = Akima1DInterpolator(unfolded_total.index, unfolded_total["spectrum"])
-s_235_akima = Akima1DInterpolator(unfolded_u235.index, unfolded_u235["spectrum"])
-s_combo_akima = Akima1DInterpolator(unfolded_pu_combo.index, unfolded_pu_combo["spectrum"])
-JUNO_akima = s_total_akima(E, extrapolate=bool) + df_235 * s_235_akima(E, extrapolate=bool) + df_239 * s_combo_akima(E, extrapolate=bool) \
-                                + df_238 * u238_hm + (df_241 - 0.183 * df_239) * pu241_hm
 
 s_total_exp = react.eval_total(E, which_input='DYB')
-s_235_exp = react.eval_235u(E, which_input='DYB')
-s_combo_exp = react.eval_239pu(E, which_input='DYB_combo')
-JUNO_exp = s_total_exp + df_235 * s_235_exp + df_239 * s_combo_exp \
-                                + df_238 * u238_hm + (df_241 - 0.183 * df_239) * pu241_hm
+JUNO_exp = react.reactor_model_dyb(E, dyb_input)
 
+react.set_fission_fractions(0.564, 0.304, 0.076, 0.056)  # DYB fission fractions
+flux_hm_dyb = react.reactor_model_std(E, std_hm)  # with tabulated data
 dyb_correction = react.get_dybfluxbump_ratio(E)
-hm_corrected = flux_hm * xsec_sv * dyb_correction
+hm_corrected = flux_hm_dyb * xsec_sv * dyb_correction
+react.set_fission_fractions(0.58, 0.30, 0.07, 0.05)  # back to JUNO fission fractions
 
 ### PLOTS
 if plot:
     ylabel = r'isotopic spectrum [N$_{\nu}$/fission/MeV]'
+    ylabel2 = r'DYB total [\si{\centi\meter\squared}/fission/MeV]'
     plot_function(
         x_=[E, E, E, unfolded_total.index], y_=[s_total_lin(E), s_total_quad(E), s_total_cub(E), unfolded_total["spectrum"]],
         label_=[r'linear', r'quadratic', r'cubic', r'DYB'], styles=['r', 'b--', 'g:', 'ko'],
         ylabel_=ylabel, xlim=None, ylim=None
     )
-    plot_function_residual(
+    ax = plot_function_residual(
         x_=[E, E], y_=[s_total_exp*xsec_sv, JUNO_exp*xsec_sv],
-        label_=[r'DYB total', r'JUNO total'], styles=['r', 'b--'], ylabel_=r'tot spectrum [a.u.]',
-        xlim=None, ylim=None, ylim2=[-3, 3]
+        label_=[r'DYB total', r'JUNO total'], styles=['r', 'b--'],
+        ylabel_=r'DYB model [\si{\centi\meter\squared}/fission/MeV]',
+        xlim=None, ylim=None, ylim2=[-1.2, 1.3]
     )
+    ax[1].yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     plot_function_residual(
         x_=[E, E, E, unfolded_total.index],
         y_=[s_total_quad(E)*xsec_sv, s_total_cub(E)*xsec_sv, s_total_lin(E)*xsec_sv, unfolded_total["spectrum"]*xsec_sv_dyb],
         label_=[r'quadratic', r'cubic', r'linear', r'no interp.'], styles=['b--', 'g:', 'r', 'ko'],
-        ylabel_=r'DYB tot spectrum [a.u.]', xlim=None, ylim=None, ylim2=[-2.5, 7.5]
-    )
-    plot_function_residual(
-        x_=[E, E, E, unfolded_total.index],
-        y_=[JUNO_quad*xsec_sv, JUNO_cub*xsec_sv, JUNO_lin*xsec_sv, juno_points*xsec_sv_dyb],
-        label_=[r'quadratic', r'cubic', r'linear', r'no interp.'], styles=['b--', 'g:', 'r', 'ko'],
-        ylabel_=r'JUNO unosc. spectrum [a.u.]', xlim=None, ylim=None, ylim2=[-2.5, 7.5]
+        ylabel_=ylabel2, xlim=None, ylim=None, ylim2=[-2.5, 7.5]
     )
     plot_function_residual(
         x_=[E, E, E, E, unfolded_total.index],
-        y_=[JUNO_akima*xsec_sv, JUNO_quad*xsec_sv, JUNO_cub*xsec_sv, JUNO_lin*xsec_sv, juno_points*xsec_sv_dyb],
+        y_=[s_total_akima(E, extrapolate=bool)*xsec_sv, s_total_quad(E)*xsec_sv, s_total_cub(E)*xsec_sv, s_total_lin(E)*xsec_sv, unfolded_total["spectrum"]*xsec_sv_dyb],
         label_=[r'Akima', r'quadratic', r'cubic', r'linear', r'no interp.'], styles=['c-', 'b--', 'g:', 'r', 'ko'],
-        ylabel_=r'JUNO unosc. spectrum [a.u.]', xlim=None, ylim=None, ylim2=[-2.5, 7.5]
+        ylabel_=ylabel2, xlim=None, ylim=None, ylim2=[-2.5, 7.5]
     )
     plot_function_residual(
         x_=[E, E, E, unfolded_total.index],
-        y_=[JUNO_akima*xsec_sv, hm_corrected, JUNO_exp*xsec_sv, juno_points*xsec_sv_dyb],
+        y_=[s_total_akima(E, extrapolate=bool)*xsec_sv, hm_corrected, s_total_exp*xsec_sv, unfolded_total["spectrum"]*xsec_sv_dyb],
         label_=[r'Akima', r'HM corrected', r'exponential', r'no interp.'], styles=['c-', 'k:', 'm--', 'ko'],
-        ylabel_=r'JUNO unosc. spectrum [a.u.]', xlim=None, ylim=None, ylim2=[-7.5, 10]
+        ylabel_=ylabel2, xlim=None, ylim=None, ylim2=[-7.5, 10]
+    )
+    plot_function(
+        x_=[E],
+        y_=[react.reactor_model_std(E, std_hm)*xsec_sv],
+        label_=[r'HM'], styles=['b'],
+        ylabel_=r'std model [\si{\centi\meter\squared}/fission/MeV]', xlim=None, ylim=None
     )
 
 ########################################################################################################################
@@ -225,22 +329,27 @@ if plot:
 ########################################################################################################################
 plot = False
 
+std_ef = {
+    '235U': 'EF',
+    '238U': 'EF',
+    '239Pu': 'EF',
+    '241Pu': 'EF'
+}
+
 # interpolating EF
 ef_235 = react.eval_235u(E, which_input="EF")
 ef_239 = react.eval_239pu(E, which_input="EF")
 ef_238 = react.eval_238u(E, which_input="EF")
 ef_241_exp = react.eval_241pu(E, which_input="EF")
 ef_241_akima = Akima1DInterpolator(pu241_ef.index, pu241_ef["spectrum"])
-JUNO_ef = inputs_json["fission_fractions"]["235U"] * ef_235 + inputs_json["fission_fractions"]["238U"] * ef_238 \
-          + inputs_json["fission_fractions"]["239Pu"] * ef_239 + inputs_json["fission_fractions"]["241Pu"] * ef_241_exp
+JUNO_ef = react.reactor_model_std(E, std_ef)
 
 # interpolating HM
 hm_235 = react.eval_235u(E, which_input="Huber")
 hm_239 = react.eval_239pu(E, which_input="Huber")
 hm_241 = react.eval_241pu(E, which_input="Huber")
 hm_238 = react.eval_238u(E, which_input="Mueller")
-JUNO_hm = inputs_json["fission_fractions"]["235U"] * hm_235 + inputs_json["fission_fractions"]["238U"] * hm_238 \
-          + inputs_json["fission_fractions"]["239Pu"] * hm_239 + inputs_json["fission_fractions"]["241Pu"] * hm_241
+JUNO_hm = react.reactor_model_std(E, std_hm)
 
 if plot:
     ylabel = r'isotopic spectrum $\times\,\sigma_{\text{IBD}}$ [a.u.]'
@@ -285,11 +394,15 @@ if plot:
         label_=[r'EF '+Pu1+' exp', r'EF '+Pu1+' Akima'], styles=['r', 'y-.'], ylabel_=ylabel
     )
 
-    plot_function_residual(
+    ax1, ax2 = plot_function_residual(
         x_=[E, E], y_=[JUNO_ef*xsec_sv, JUNO_hm*xsec_sv*0.95],
         label_=[r'EF', r'HM $\times$ 0.95'], styles=['r-', 'b-.'], ylabel_=r'JUNO unosc. spectrum [a.u.]',
         ylim2=[-7.5, 5]
     )
+    ax1.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax1.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax2.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax2.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
 ########################################################################################################################
 # final comparison
@@ -325,17 +438,26 @@ def dyb_ef_spectrum(x_, opt_=''):
 
 
 plot = False
+react.set_fission_fractions(0.58, 0.30, 0.07, 0.05)
+flux_hm = react.reactor_model_std(E, std_hm)
 E2 = np.arange(8.5, 12.01, 0.005)
 E_t = 8.65
+
+u5 = react.eval_235u(E, which_input="Huber")*xsec_sv
+u8 = react.eval_238u(E, which_input="Mueller")*xsec_sv
+p9 = react.eval_239pu(E, which_input="Huber")*xsec_sv
+p1 = react.eval_241pu(E, which_input="Huber")*xsec_sv
 if plot:
     ax1, ax2 = plot_function_residual(
-        x_=[E, E, E, E, E],
-        y_=[JUNO_exp*xsec_sv, JUNO_ef*xsec_sv, JUNO_hm*xsec_sv, flux_hm * xsec_sv, flux_hm * xsec_sv * dyb_correction],
-        label_=[r'exp DYB', r'exp EF', r'exp HM', 'HM exp-pol', 'HM corrected'],
-        styles=['k-', 'r--', 'b-.', 'g-.', 'y-.'], ylabel_=r'JUNO unosc. spectrum [a.u.]', ylim2=[-12, 20]
+        x_=[E, E, E, E],
+        y_=[JUNO_exp*xsec_sv, JUNO_ef*xsec_sv, JUNO_hm*xsec_sv, flux_hm * xsec_sv * dyb_correction],
+        label_=[r'DYB', r'EF vanilla', r'HM vanilla', 'HM vanilla+corrections'],
+        styles=['k-', 'r--', 'b-.', 'g-.'],
+        ylabel_=r'JUNO unosc. spectrum [a.u.]',
+        ylim2=[-12, 20]
     )
     ax2.get_legend().remove()
-    ax2.text(7, 13, r"(X - exp DYB)/(exp DYB)", fontsize=13)
+    ax2.text(7, 13, r"(X - DYB)/(DYB)", fontsize=13)
 
     plot_function(
         x_=[E, E, E, E], y_=[dyb_correction, JUNO_exp/JUNO_hm, JUNO_exp/JUNO_ef, JUNO_ef/JUNO_hm], ylim=[0.8, 1.2],
@@ -360,6 +482,169 @@ if plot:
         styles=['ko', 'k-', 'r-', 'b--', 'g--'], ylabel_=r'JUNO spectrum [a.u.]'
     )
     ax.legend(loc="upper right")
+
+    ax = plot_function_residual(
+        x_=[E, E, E, E],
+        y_=[react.eval_238u(E, which_input="Mueller")*xsec_sv, react.eval_238u(E, which_input="EF")*xsec_sv,
+            react.eval_238u(E, which_input="Haag")*xsec_sv, react.eval_238u(E, which_input="Kopeikin")*xsec_sv],
+        label_=[r"M " + U8, r"EF " + U8, r"Haag " + U8, r"Kpk " + U8],
+        styles=['k--', 'r--', 'b-.', 'g:'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
+    )
+    ax[1].legend(loc="upper right")
+    ax[1].get_legend().remove()
+    ax[1].text(7, 27, r"(X - HM)/(HM)", fontsize=13)
+
+    ax = plot_function(
+        x_=[E, E, E, E],
+        y_=[u5/integrate.simps(u5, E), u8/integrate.simps(u8, E),
+            p9/integrate.simps(p9, E), p1/integrate.simps(p1, E)],
+        label_=[r"H " + U5, r"M " + U8, r"H " + Pu9, r"H " + Pu1],
+        styles=['k--', 'r--', 'b-.', 'g:'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
+    )
+
+
+########################################################################################################################
+# cross section per fission
+########################################################################################################################
+
+E_f = np.arange(1.875, 8.13, 0.005)
+react.verbose = False
+cross_section = react.eval_xs(E_f, which_xs="SV_CI", bool_protons=False)
+xsf_235 = integrate.simps(react.eval_235u(E_f, which_input="Huber")*cross_section, E_f)
+xsf_239 = integrate.simps(react.eval_239pu(E_f, which_input="Huber")*cross_section, E_f)
+xsf_238 = integrate.simps(react.eval_238u(E_f, which_input="Mueller")*cross_section, E_f)
+xsf_241 = integrate.simps(react.eval_241pu(E_f, which_input="Huber")*cross_section, E_f)
+print(f"\nCross section per fission for each isotope; relative difference wrt prediction (HM)")
+print("235U: {:.2e} cm2/fission; {:.2f}%".format(xsf_235, (xsf_235-6.69e-43)/6.69e-43*100))
+print("239Pu: {:.2e} cm2/fission; {:.2f}%".format(xsf_239, (xsf_239-4.4e-43)/4.4e-43*100))
+print("238U: {:.2e} cm2/fission; {:.2f}%".format(xsf_238, (xsf_238-10.1e-43)/10.1e-43*100))
+print("241Pu: {:.2e} cm2/fission; {:.2f}%".format(xsf_241, (xsf_241-6.03e-43)/6.03e-43*100))
+
+react.set_fission_fractions(0.58, 0.3, 0.07, 0.05)
+flux_juno = react.reactor_model_dyb(E_f, dyb_input)
+xsf_juno = integrate.simps(flux_juno*cross_section, E_f)
+print("Total cross section per fission: {:.2e} cm2/fission - DYB model".format(xsf_juno))
+
+flux_juno_hm = react.reactor_model_std(E_f, std_hm)
+xsf_juno_hm = integrate.simps(flux_juno_hm*cross_section, E_f)
+print("Total cross section per fission: {:.2e} cm2/fission - HM model".format(xsf_juno_hm))
+
+react.set_fission_fractions(0.6033, 0.2744, 0.0757, 0.0466)
+flux_a = react.reactor_model_dyb(E_f, dyb_input)
+xsf_a = integrate.simps(flux_a*cross_section, E_f)
+
+react.set_fission_fractions(0.5279, 0.3326, 0.0766, 0.0629)
+flux_b = react.reactor_model_dyb(E_f, dyb_input)
+xsf_b = integrate.simps(flux_b*cross_section, E_f)
+print("\nfission fraction 239Pu: 0.2744 - total cross section per fission: {:.2e} cm2/fission".format(xsf_a))
+print("fission fraction 239Pu: 0.3326 - total cross section per fission: {:.2e} cm2/fission".format(xsf_b))
+
+
+########################################################################################################################
+# oscillated spectrum
+########################################################################################################################
+plot = True
+dyb_std = {
+    'total': 'DYB',
+    '235U': 'DYB',
+    '238U': 'Mueller',
+    '239Pu': 'DYB_combo',
+    '241Pu': 'Huber'
+}
+
+vanilla_hm = {
+    '235U': 'Huber',
+    '238U': 'Mueller',
+    '239Pu': 'Huber',
+    '241Pu': 'Huber'
+}
+
+vanilla_haag = {
+    '235U': 'Huber',
+    '238U': 'Haag',
+    '239Pu': 'Huber',
+    '241Pu': 'Huber'
+}
+
+dyb_haag = {
+    'total': 'DYB',
+    '235U': 'DYB',
+    '238U': 'Haag',
+    '239Pu': 'DYB_combo',
+    '241Pu': 'Huber'
+}
+
+dyb_k = {
+    'total': 'DYB',
+    '235U': 'DYB',
+    '238U': 'Kopeikin',
+    '239Pu': 'DYB_combo',
+    '241Pu': 'Huber'
+}
+
+vanilla_k = {
+    '235U': 'Huber',
+    '238U': 'Kopeikin',
+    '239Pu': 'Huber',
+    '241Pu': 'Huber'
+}
+
+E_s = np.arange(1.81, 10, 0.005)
+s_std = react.unoscillated_reactor_spectrum(E_s, dyb_std, which_xs="SV_CI", pu_combo=True)
+s_haag = react.unoscillated_reactor_spectrum(E_s, dyb_haag, which_xs="SV_CI", pu_combo=True)
+s_k = react.unoscillated_reactor_spectrum(E_s, dyb_k, which_xs="SV_CI", pu_combo=True)
+# react.set_fission_fractions(0.564, 0.304, 0.076, 0.056)  # DYB fission fractions
+s_vanilla = react.unoscillated_reactor_spectrum(E_s, vanilla_hm, which_xs="SV_CI", pu_combo=True)
+s_vanilla_haag = react.unoscillated_reactor_spectrum(E_s, vanilla_haag, which_xs="SV_CI", pu_combo=True)
+s_vanilla_k = react.unoscillated_reactor_spectrum(E_s, vanilla_k, which_xs="SV_CI", pu_combo=True)
+
+norm_std = integrate.simps(s_std, E_s)
+norm_haag = integrate.simps(s_haag, E_s)
+norm_k = integrate.simps(s_k, E_s)
+diff = (norm_haag-norm_std)/norm_std*100.
+diff2 = (norm_k-norm_std)/norm_std*100.
+print("\nDYB based model")
+print("Difference in normalization w/ or w/o Haag spectrum of 238U")
+print("{:.6e} ; {:.6e} ; {:.4f}%".format(norm_std, norm_haag, diff))
+print("Difference in normalization w/ or w/o Kopeikin spectrum of 238U")
+print("{:.6e} ; {:.6e} ; {:.4f}%".format(norm_std, norm_k, diff2))
+
+norm_std = integrate.simps(s_vanilla, E_s)
+norm_haag = integrate.simps(s_vanilla_haag, E_s)
+norm_k = integrate.simps(s_vanilla_k, E_s)
+diff = (norm_haag-norm_std)/norm_std*100.
+diff2 = (norm_k-norm_std)/norm_std*100.
+print("\nVanilla model")
+print("Difference in normalization w/ or w/o Haag spectrum of 238U")
+print("{:.6e} ; {:.6e} ; {:.4f}%".format(norm_std, norm_haag, diff))
+print("Difference in normalization w/ or w/o Kopeikin spectrum of 238U")
+print("{:.6e} ; {:.6e} ; {:.4f}%".format(norm_std, norm_k, diff2))
+
+# xs = react.eval_xs(E_s, which_xs="SV_CI")
+
+prob = OscillationProbability(inputs_json)
+prob_N_v, prob_I_v = prob.eval_vacuum_prob(plot_this=False)
+prob_N_ve, prob_I_ve = prob.eval_vacuum_prob(E_s, plot_this=False)
+
+if plot:
+    ax = plot_function_residual(
+        x_=[E_s, E_s, E_s], y_=[s_std, s_haag, s_k], label_=[r'DYB+M', r'DYB+Haag', 'DYB+Kpk'],
+        styles=['b-', 'r--', 'g-.'], ylabel_=r'Unoscillated spectrum [N$_{\nu}$/MeV/s]', y2_sci=True
+    )
+    ax[1].legend(loc='lower left')
+
+    ax = plot_function_residual(
+        x_=[E_s, E_s, E_s], y_=[s_vanilla, s_vanilla_haag, s_vanilla_k], label_=[r'H+M', r'H+Haag', r'H+Kpk'],
+        styles=['b-', 'r--', 'g-.'], ylabel_=r'Unoscillated spectrum [N$_{\nu}$/MeV/s]'
+    )
+    ax[1].legend(loc='lower left')
+
+    plot_function_residual(
+        x_=[E_s, E_s, E_s],
+        y_=[s_std*prob_N_ve, s_haag*prob_N_ve, s_k*prob_N_ve],
+        label_=[r'DYB+M', r'DYB+Haag', 'DYB+Kpk'], styles=['b-', 'r--', 'g-.'],
+        ylabel_=r"Oscillated spectrum [N$_{\nu}$/MeV/s]", y2_sci=True
+    )
 
 
 elapsed_time = time.perf_counter_ns() - time_start
