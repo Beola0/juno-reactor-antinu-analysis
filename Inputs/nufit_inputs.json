@@ -43,7 +43,8 @@
 	},
 	"thermal_power" : 26.6,
 	"baseline" : 52.5,
-	"reactor_list" : "Inputs/list_of_reactors.csv",
-	"ROOT_file" : "Inputs/JUNOInputs2021_05_28_noTF2.root",
+	"reactor_list" : "/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/list_of_reactors.csv",
+	"ROOT_file" : "/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/JUNOInputs2021_05_28_noTF2.root",
+	"input_spectra" : "/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/spectra/",
 	"verbose" : true
 }
