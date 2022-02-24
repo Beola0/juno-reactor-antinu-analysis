@@ -222,7 +222,7 @@ if plot:
     )
     ax[1].legend(loc='upper right')
 
-    plot_function(
+    plot_function_residual(
         x_=[unfolded_total.index, unfolded_u235.index, unfolded_pu_combo.index],
         y_=[xs_dyb, xs_dyb_5, xs_dyb_pu], styles=['b.', 'r.', 'g.'],
         label_=[r's total', r's u235', r's pu\_combo'], ylabel_=ylabel,
@@ -437,7 +437,7 @@ def dyb_ef_spectrum(x_, opt_=''):
     return y_
 
 
-plot = False
+plot = True
 react.set_fission_fractions(0.58, 0.30, 0.07, 0.05)
 flux_hm = react.reactor_model_std(E, std_hm)
 E2 = np.arange(8.5, 12.01, 0.005)
@@ -502,48 +502,18 @@ if plot:
         styles=['k--', 'r--', 'b-.', 'g:'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
     )
 
-
-########################################################################################################################
-# cross section per fission
-########################################################################################################################
-
-E_f = np.arange(1.875, 8.13, 0.005)
-react.verbose = False
-cross_section = react.eval_xs(E_f, which_xs="SV_CI", bool_protons=False)
-xsf_235 = integrate.simps(react.eval_235u(E_f, which_input="Huber")*cross_section, E_f)
-xsf_239 = integrate.simps(react.eval_239pu(E_f, which_input="Huber")*cross_section, E_f)
-xsf_238 = integrate.simps(react.eval_238u(E_f, which_input="Mueller")*cross_section, E_f)
-xsf_241 = integrate.simps(react.eval_241pu(E_f, which_input="Huber")*cross_section, E_f)
-print(f"\nCross section per fission for each isotope; relative difference wrt prediction (HM)")
-print("235U: {:.2e} cm2/fission; {:.2f}%".format(xsf_235, (xsf_235-6.69e-43)/6.69e-43*100))
-print("239Pu: {:.2e} cm2/fission; {:.2f}%".format(xsf_239, (xsf_239-4.4e-43)/4.4e-43*100))
-print("238U: {:.2e} cm2/fission; {:.2f}%".format(xsf_238, (xsf_238-10.1e-43)/10.1e-43*100))
-print("241Pu: {:.2e} cm2/fission; {:.2f}%".format(xsf_241, (xsf_241-6.03e-43)/6.03e-43*100))
-
-react.set_fission_fractions(0.58, 0.3, 0.07, 0.05)
-flux_juno = react.reactor_model_dyb(E_f, dyb_input)
-xsf_juno = integrate.simps(flux_juno*cross_section, E_f)
-print("Total cross section per fission: {:.2e} cm2/fission - DYB model".format(xsf_juno))
-
-flux_juno_hm = react.reactor_model_std(E_f, std_hm)
-xsf_juno_hm = integrate.simps(flux_juno_hm*cross_section, E_f)
-print("Total cross section per fission: {:.2e} cm2/fission - HM model".format(xsf_juno_hm))
-
-react.set_fission_fractions(0.6033, 0.2744, 0.0757, 0.0466)
-flux_a = react.reactor_model_dyb(E_f, dyb_input)
-xsf_a = integrate.simps(flux_a*cross_section, E_f)
-
-react.set_fission_fractions(0.5279, 0.3326, 0.0766, 0.0629)
-flux_b = react.reactor_model_dyb(E_f, dyb_input)
-xsf_b = integrate.simps(flux_b*cross_section, E_f)
-print("\nfission fraction 239Pu: 0.2744 - total cross section per fission: {:.2e} cm2/fission".format(xsf_a))
-print("fission fraction 239Pu: 0.3326 - total cross section per fission: {:.2e} cm2/fission".format(xsf_b))
+    plot_function(
+        x_=[E, E, E, E],
+        y_=[u5, u8, p9, p1],
+        label_=[r"H " + U5, r"M " + U8, r"H " + Pu9, r"H " + Pu1],
+        styles=['k--', 'r--', 'b-.', 'g:'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
+    )
 
 
 ########################################################################################################################
 # oscillated spectrum
 ########################################################################################################################
-plot = True
+plot = False
 dyb_std = {
     'total': 'DYB',
     '235U': 'DYB',
