@@ -26,6 +26,7 @@ NC = '\033[0m'
 names_huber = ["energy", "spectrum", "neg_stat", "pos_stat", "neg_bias", "pos_bias", "neg_z", "pos_z", "neg_wm",
                "pos_wm", "neg_norm", "pos_norm", "neg_tot", "pos_tot"]
 names_mueller = ["energy", "spectrum"]
+names_mueller_238 = ["energy", "spectrum", "nuclear_db", "forbidden_treatment", "corrections", "missing_info"]
 names_ef = ["energy", "spectrum"]
 names_dyb = ["energy", "IBD_spectrum", "spectrum"]
 names_haag = ["energy", "spectrum", "error", "error_norm"]
@@ -265,7 +266,7 @@ class UnoscillatedReactorSpectrum:
         if self.verbose:
             print(f"\n{BLUE}Isotopic spectrum: Reading Mueller 238U{NC}")
         self.u8_mueller = pd.read_csv(self.path_to_input_spectra+"u238_mueller.csv", sep=',', skiprows=1,
-                                      header=None, index_col=0, names=names_mueller)
+                                      header=None, index_col=0, names=names_mueller_238)
         return self.u8_mueller
 
     def get_239pu_mueller(self):
@@ -727,7 +728,7 @@ class UnoscillatedReactorSpectrum:
 
     def get_xs_strumiavissani_commoninputs(self):
         if self.verbose:
-            print(f"\n{CYAN}Reading Strumia-Vissani cross section from common inputs{NC}")
+            print(f"\n{BLUE}Reading Strumia-Vissani cross section from common inputs{NC}")
         input_ = uproot.open(self.root_file + ":IBDXsec_StrumiaVissani").to_numpy()
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
@@ -738,7 +739,7 @@ class UnoscillatedReactorSpectrum:
 
     def get_xs_vogelbeacom_commoninputs(self):
         if self.verbose:
-            print(f"\n{CYAN}Reading Vogel-Beacom cross section from common inputs{NC}")
+            print(f"\n{BLUE}Reading Vogel-Beacom cross section from common inputs{NC}")
         input_ = uproot.open(self.root_file + ":IBDXsec_VogelBeacom_DYB").to_numpy()
         xx = np.zeros(len(input_[0]))
         for i_ in np.arange(len(xx)):
