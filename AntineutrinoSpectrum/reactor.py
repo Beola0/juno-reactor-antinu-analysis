@@ -430,7 +430,7 @@ class UnoscillatedReactorSpectrum:
             print(f"{RED}Error: eval_235u: instead got {which_input}.{NC}")
             sys.exit()
 
-    def eval_238u(self, nu_energy_, which_input='Mueller'):
+    def eval_238u(self, nu_energy_, which_input='EF'):
         if self.verbose:
             print(f"\n{CYAN}Isotopic spectrum: Using {which_input} for 238U{NC}")
         if which_input == 'Mueller':
@@ -459,7 +459,7 @@ class UnoscillatedReactorSpectrum:
             print(f"{RED}Error: eval_238u: instead got {which_input}.{NC}")
             sys.exit()
 
-    def eval_239pu(self, nu_energy_, which_input='Huber'):
+    def eval_239pu(self, nu_energy_, which_input='DYB_combo'):
         if self.verbose:
             print(f"\n{CYAN}Isotopic spectrum: Using {which_input} for 239Pu/PuCombo{NC}")
         if which_input == 'Huber':
@@ -808,7 +808,7 @@ class UnoscillatedReactorSpectrum:
     #################################
     # Unoscillated Reactor Spectrum #
     #################################
-    def unoscillated_reactor_spectrum(self, nu_energy_, which_inputs_, which_xs='SV', bool_protons=True,
+    def unoscillated_reactor_spectrum(self, nu_energy_, which_inputs_, which_xs='SV_approx', bool_protons=True,
                                       pu_combo=True, bool_snf=False, bool_noneq=False):
 
         flux = self.reactor_flux(nu_energy_, which_inputs_, pu_combo=pu_combo, bool_snf=bool_snf, bool_noneq=bool_noneq)
