@@ -124,7 +124,7 @@ if plot:
     ax = plot_function(
         x_=[unfolded_u235.index, unfolded_pu_combo.index, unfolded_total.index],
         y_=[unfolded_u235["spectrum"], unfolded_pu_combo["spectrum"], unfolded_total["spectrum"]],
-        label_=[r'DYB '+U5, r'DYB Pu-comb', r'DYB tot'],
+        label_=[r'DYB '+U5, r'DYB Pu-combo', r'DYB tot'],
         styles=['b^', 'rh', 'ko'], ylabel_=ylabel, xlim=xlim, ylim=ylim
     )
     ax.axvline(1.806, 0, 1, color='k', linestyle=':')
@@ -133,7 +133,7 @@ if plot:
     ax = plot_function(
         x_=[unfolded_u235.index, unfolded_pu_combo.index, unfolded_total.index],
         y_=[unfolded_u235["IBD_spectrum"], unfolded_pu_combo["IBD_spectrum"], unfolded_total["IBD_spectrum"]],
-        label_=[r'DYB '+U5, r'DYB Pu-comb', r'DYB tot'],
+        label_=[r'DYB '+U5, r'DYB Pu-combo', r'DYB tot'],
         styles=['b^', 'rh', 'ko'], ylabel_=ylabel_pp, xlim=xlim, ylim=None
     )
     ax.axvline(1.806, 0, 1, color='k', linestyle=':')
@@ -258,8 +258,8 @@ dyb_input = {
     '241Pu': 'Huber'
 }
 
-xsec_sv = react.eval_xs(E, which_xs="SV_CI", bool_protons=False)  # SV IBD cross section from common inputs
-xsec_sv_dyb = react.eval_xs(unfolded_total.index, which_xs="SV_CI", bool_protons=False)  # for DYB binning
+xsec_sv = react.eval_xs(E, which_xs="SV_approx", bool_protons=False)  # SV IBD cross section from common inputs
+xsec_sv_dyb = react.eval_xs(unfolded_total.index, which_xs="SV_approx", bool_protons=False)  # for DYB binning
 
 # with DYB binning (based on HM)
 u238_dyb = react.eval_238u(unfolded_total.index, which_input='Mueller')
@@ -298,6 +298,10 @@ if plot:
         ylabel_=r'DYB model [\si{\centi\meter\squared}/fission/MeV]',
         xlim=None, ylim=None, ylim2=[-1.2, 1.3]
     )
+    ax[0].axvline(8.65, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(1.925, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(8.65, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(1.925, 0, 1, color='k', linestyle='--', linewidth=1)
     ax[1].yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     plot_function_residual(
         x_=[E, E, E, unfolded_total.index],
@@ -317,12 +321,14 @@ if plot:
         label_=[r'Akima', r'HM corrected', r'exponential', r'no interp.'], styles=['c-', 'k:', 'm--', 'ko'],
         ylabel_=ylabel2, xlim=None, ylim=None, ylim2=[-7.5, 10]
     )
-    plot_function(
+    ax = plot_function(
         x_=[E],
         y_=[react.reactor_model_std(E, std_hm)*xsec_sv],
         label_=[r'HM'], styles=['b'],
-        ylabel_=r'std model [\si{\centi\meter\squared}/fission/MeV]', xlim=None, ylim=None
+        ylabel_=r'vanilla model [\si{\centi\meter\squared}/fission/MeV]', xlim=None, ylim=None
     )
+    ax.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
 ########################################################################################################################
 # EF - HM comparison - exponential interpolation
@@ -353,56 +359,56 @@ JUNO_hm = react.reactor_model_std(E, std_hm)
 
 if plot:
     ylabel = r'isotopic spectrum $\times\,\sigma_{\text{IBD}}$ [a.u.]'
-    ax1, ax2 = plot_function_residual(
+    ax = plot_function_residual(
         x_=[E, E], y_=[ef_235*xsec_sv, hm_235*xsec_sv], ylim2=[-5, 20],
         label_=[r'EF '+U5, r'HM '+U5], styles=['r', 'b-.'], ylabel_=ylabel
     )
-    ax1.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax1.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
-    ax1, ax2 = plot_function_residual(
+    ax = plot_function_residual(
         x_=[E, E], y_=[ef_238*xsec_sv, hm_238*xsec_sv], ylim2=[-10, 10],
         label_=[r'EF '+U8, r'HM '+U8], styles=['r', 'b-.'], ylabel_=ylabel
     )
-    ax1.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax1.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
-    ax1, ax2 = plot_function_residual(
+    ax = plot_function_residual(
         x_=[E, E], y_=[ef_239*xsec_sv, hm_239*xsec_sv], ylim2=[-15, 20],
         label_=[r'EF '+Pu9, r'HM '+Pu9], styles=['r', 'b-.'], ylabel_=ylabel
     )
-    ax1.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax1.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
-    ax1, ax2 = plot_function_residual(
+    ax = plot_function_residual(
         x_=[E, E], y_=[ef_241_exp*xsec_sv, hm_241*xsec_sv], ylim2=[-20, 15],
         label_=[r'EF '+Pu1, r'HM '+Pu1], styles=['r', 'b-.'], ylabel_=ylabel
     )
-    ax1.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax1.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
     plot_function_residual(
         x_=[E, E], y_=[ef_241_exp*xsec_sv, ef_241_akima(E, extrapolate=bool)*xsec_sv],
         label_=[r'EF '+Pu1+' exp', r'EF '+Pu1+' Akima'], styles=['r', 'y-.'], ylabel_=ylabel
     )
 
-    ax1, ax2 = plot_function_residual(
+    ax = plot_function_residual(
         x_=[E, E], y_=[JUNO_ef*xsec_sv, JUNO_hm*xsec_sv*0.95],
         label_=[r'EF', r'HM $\times$ 0.95'], styles=['r-', 'b-.'], ylabel_=r'JUNO unosc. spectrum [a.u.]',
         ylim2=[-7.5, 5]
     )
-    ax1.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax1.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
-    ax2.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[0].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
+    ax[1].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
 ########################################################################################################################
 # final comparison
@@ -437,7 +443,7 @@ def dyb_ef_spectrum(x_, opt_=''):
     return y_
 
 
-plot = True
+plot = False
 react.set_fission_fractions(0.58, 0.30, 0.07, 0.05)
 flux_hm = react.reactor_model_std(E, std_hm)
 E2 = np.arange(8.5, 12.01, 0.005)
@@ -448,22 +454,24 @@ u8 = react.eval_238u(E, which_input="Mueller")*xsec_sv
 p9 = react.eval_239pu(E, which_input="Huber")*xsec_sv
 p1 = react.eval_241pu(E, which_input="Huber")*xsec_sv
 if plot:
-    ax1, ax2 = plot_function_residual(
-        x_=[E, E, E, E],
-        y_=[JUNO_exp*xsec_sv, JUNO_ef*xsec_sv, JUNO_hm*xsec_sv, flux_hm * xsec_sv * dyb_correction],
-        label_=[r'DYB', r'EF vanilla', r'HM vanilla', 'HM vanilla+corrections'],
-        styles=['k-', 'r--', 'b-.', 'g-.'],
-        ylabel_=r'JUNO unosc. spectrum [a.u.]',
-        ylim2=[-12, 20]
-    )
-    ax2.get_legend().remove()
-    ax2.text(7, 13, r"(X - DYB)/(DYB)", fontsize=13)
-
     plot_function(
-        x_=[E, E, E, E], y_=[dyb_correction, JUNO_exp/JUNO_hm, JUNO_exp/JUNO_ef, JUNO_ef/JUNO_hm], ylim=[0.8, 1.2],
-        label_=[r'input DYB/HM (2016)', 'DYB(2021)/HM(2011)', 'DYB(2021)/EF(2019)', 'EF(2019)/HM(2011)'],
-        styles=['k-', 'b-.', 'r--', 'g-.'], ylabel_=r'JUNO spectra ratios'
+        x_=[E, E, E, E],
+        y_=[JUNO_ef*xsec_sv, JUNO_hm*xsec_sv, flux_hm * xsec_sv * dyb_correction, JUNO_exp*xsec_sv],
+        label_=[r'EF vanilla', r'HM vanilla', 'HM vanilla+corrections', r'DYB model'],
+        styles=['r--', 'b-.', 'g-.', 'k-'],
+        ylabel_=r'JUNO reactor spectrum [a.u.]'  # ,ylim2=[-12, 20]
     )
+    # ax[1].get_legend().remove()
+    # ax[1].text(7, 13, r"(X - DYB)/(DYB)", fontsize=13)
+
+    ax = plot_function(
+        x_=[E],  # E, E, E],
+        y_=[dyb_correction],  # JUNO_exp/JUNO_hm, JUNO_exp/JUNO_ef], # JUNO_ef/JUNO_hm],
+        label_=[r'CI 2016: DYB/HM', 'DYB(2021)/HM(2011)', 'DYB(2021)/EF(2019)', 'EF(2019)/HM(2011)'],
+        styles=['k-', 'b-.', 'r--', 'g-.'], ylabel_=r'ratios', ylim=[0.8, 1.2],
+    )
+    ax.legend(loc='upper left')
+    ax.axhline(1, 0, 1, color='k', linewidth=0.5)
 
     plot_function(
         x_=[unfolded_total.index, E, E],
@@ -472,10 +480,10 @@ if plot:
         styles=['ko', 'r-', 'b--'], ylabel_=r'JUNO spectrum [a.u.]'
     )
 
-    xs_e2 = react.eval_xs(E2, which_xs="SV_CI")
+    xs_e2 = react.eval_xs(E2, which_xs="SV_approx")
     ax = plot_function(
         x_=[unfolded_total.index.values[-1], E2, E2, E2, E2],
-        y_=[juno_points.values[-1] * react.eval_xs(E_t, which_xs="SV_CI"), dyb_spectrum(E2) * xs_e2,
+        y_=[juno_points.values[-1] * react.eval_xs(E_t, which_xs="SV_approx"), dyb_spectrum(E2) * xs_e2,
             ef_spectrum(E2) * xs_e2,
             dyb_ef_spectrum(E2) * xs_e2, dyb_ef_spectrum(E2, opt_="s") * xs_e2],
         label_=[r"DYB", "DYB - exp", r"EF - exp", r"DYB+EF", r"DYB+EF s", r"DYB+EF t"],
@@ -488,11 +496,11 @@ if plot:
         y_=[react.eval_238u(E, which_input="Mueller")*xsec_sv, react.eval_238u(E, which_input="EF")*xsec_sv,
             react.eval_238u(E, which_input="Haag")*xsec_sv, react.eval_238u(E, which_input="Kopeikin")*xsec_sv],
         label_=[r"M " + U8, r"EF " + U8, r"Haag " + U8, r"Kpk " + U8],
-        styles=['k--', 'r--', 'b-.', 'g:'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
+        styles=['g--', 'k--', 'r-.', 'y-.'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
     )
     ax[1].legend(loc="upper right")
     ax[1].get_legend().remove()
-    ax[1].text(7, 27, r"(X - HM)/(HM)", fontsize=13)
+    ax[1].text(0.8, 0.8, r"(X - M)/M", fontsize=13, transform=ax[1].transAxes)
 
     ax = plot_function(
         x_=[E, E, E, E],
@@ -560,13 +568,13 @@ vanilla_k = {
 }
 
 E_s = np.arange(1.81, 10, 0.005)
-s_std = react.unoscillated_reactor_spectrum(E_s, dyb_std, which_xs="SV_CI", pu_combo=True)
-s_haag = react.unoscillated_reactor_spectrum(E_s, dyb_haag, which_xs="SV_CI", pu_combo=True)
-s_k = react.unoscillated_reactor_spectrum(E_s, dyb_k, which_xs="SV_CI", pu_combo=True)
+s_std = react.unoscillated_reactor_spectrum(E_s, dyb_std, which_xs="SV_approx", pu_combo=True)
+s_haag = react.unoscillated_reactor_spectrum(E_s, dyb_haag, which_xs="SV_approx", pu_combo=True)
+s_k = react.unoscillated_reactor_spectrum(E_s, dyb_k, which_xs="SV_approx", pu_combo=True)
 # react.set_fission_fractions(0.564, 0.304, 0.076, 0.056)  # DYB fission fractions
-s_vanilla = react.unoscillated_reactor_spectrum(E_s, vanilla_hm, which_xs="SV_CI", pu_combo=True)
-s_vanilla_haag = react.unoscillated_reactor_spectrum(E_s, vanilla_haag, which_xs="SV_CI", pu_combo=True)
-s_vanilla_k = react.unoscillated_reactor_spectrum(E_s, vanilla_k, which_xs="SV_CI", pu_combo=True)
+s_vanilla = react.unoscillated_reactor_spectrum(E_s, vanilla_hm, which_xs="SV_approx", pu_combo=True)
+s_vanilla_haag = react.unoscillated_reactor_spectrum(E_s, vanilla_haag, which_xs="SV_approx", pu_combo=True)
+s_vanilla_k = react.unoscillated_reactor_spectrum(E_s, vanilla_k, which_xs="SV_approx", pu_combo=True)
 
 norm_std = integrate.simps(s_std, E_s)
 norm_haag = integrate.simps(s_haag, E_s)
@@ -601,7 +609,7 @@ if plot:
         x_=[E_s, E_s, E_s], y_=[s_std, s_haag, s_k], label_=[r'DYB+M', r'DYB+Haag', 'DYB+Kpk'],
         styles=['b-', 'r--', 'g-.'], ylabel_=r'Unoscillated spectrum [N$_{\nu}$/MeV/s]', y2_sci=True
     )
-    ax[1].legend(loc='lower left')
+    ax[1].legend(loc='upper left')
 
     ax = plot_function_residual(
         x_=[E_s, E_s, E_s], y_=[s_vanilla, s_vanilla_haag, s_vanilla_k], label_=[r'H+M', r'H+Haag', r'H+Kpk'],

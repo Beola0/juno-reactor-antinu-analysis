@@ -60,7 +60,7 @@ time_start = time.perf_counter_ns()
 
 E_f = np.arange(1.875, 8.13, 0.005)
 react.verbose = False
-cross_section = react.eval_xs(E_f, which_xs="SV_CI", bool_protons=False)
+cross_section = react.eval_xs(E_f, which_xs="SV_approx", bool_protons=False)
 xsf_235 = integrate.simps(react.eval_235u(E_f, which_input="Huber")*cross_section, E_f)
 xsf_239 = integrate.simps(react.eval_239pu(E_f, which_input="Huber")*cross_section, E_f)
 xsf_238 = integrate.simps(react.eval_238u(E_f, which_input="Mueller")*cross_section, E_f)
@@ -90,8 +90,9 @@ xsf_b = integrate.simps(flux_b*cross_section, E_f)
 print("\nfission fraction 239Pu: 0.2744 - total cross section per fission: {:.2e} cm2/fission".format(xsf_a))
 print("fission fraction 239Pu: 0.3326 - total cross section per fission: {:.2e} cm2/fission".format(xsf_b))
 
+
 ########################################################################################################################
-# time evolution of mean cross section per fission
+# fission fractions
 ########################################################################################################################
 
 E_t = np.arange(1.875, 9.005, 0.005)
@@ -100,49 +101,106 @@ mean_fiss_f = pd.read_csv("Inputs/effective_fission_fractions_DYB_PRL2017.txt", 
                                   names=["239_lo", "239_hi", "f_239", "f_235", "f_238", "f_241", "sig"])
 mean_fiss_f = mean_fiss_f.loc[::-1].set_index(mean_fiss_f.index)  # reverse df
 
-xs = react.eval_xs(E_t, which_xs="SV_CI", bool_protons=False)
-xs2 = react.eval_xs(E_t2, which_xs="SV_CI", bool_protons=False)
-xsf = np.zeros(len(mean_fiss_f.index))
-xsf2 = np.zeros(len(mean_fiss_f.index))
-xsf_hm = np.zeros(len(mean_fiss_f.index))
-spectra = []
-fig, axes = plt.subplots(nrows=2, ncols=4, figsize=[10, 6.5], sharex=True, sharey=True, constrained_layout=True)
-for i_, ax in enumerate(axes.flat):
-    react.set_fission_fractions(mean_fiss_f['f_235'].iloc[i_], mean_fiss_f['f_239'].iloc[i_],
-                                mean_fiss_f['f_238'].iloc[i_], mean_fiss_f['f_241'].iloc[i_])
-    flux = react.reactor_model_dyb(E_t, dyb_input)
-    ax.plot(E_t, flux*xs, 'k-', label=r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[i_], linewidth=1.,)
-    ax.legend()
-    ax.grid(alpha=0.65)
-    spectra.append(flux*xs)
-    xsf[i_] = integrate.simps(flux*xs, E_t)
-    xsf2[i_] = integrate.simps(react.reactor_model_dyb(E_t2, dyb_input) * xs2, E_t2)
-    xsf_hm[i_] = integrate.simps(react.reactor_model_std(E_t, std_hm) * xs, E_t)
+fiss_f = pd.read_csv("Inputs/1cycle_fission_fractions_CPC2017.csv", sep=',', skiprows=1, header=None,
+                            names=['burnup', 'days', 'f_235', 'f_239', 'f_238', 'f_241'])
+fiss_f['sum'] = fiss_f.iloc[:, 2:6].apply(np.sum, axis=1)
+for iso_ in ['f_235', 'f_239', 'f_238', 'f_241']:
+    fiss_f[iso_] = fiss_f[iso_] / fiss_f['sum']
+    # fiss_f_1cycle[iso_] = fiss_f_1cycle[iso_] / 100.
 
-plot_function(
-    x_=[E_t, E_t, E_t, E_t, E_t, E_t, E_t, E_t],
-    y_=spectra,
-    label_=[r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[0], r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[1],
-            r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[2], r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[3],
-            r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[4], r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[5],
-            r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[6], r'F$_{239}$ = %.4f' % mean_fiss_f['f_239'].iloc[7]],
-    ylabel_=r'spectrum [a.u.]'
-)
+fiss_f_1cycle = fiss_f[fiss_f.index.isin([0, 10, 20, 35, 53, 75, 105, 132])]
+fiss_f_1cycle = fiss_f_1cycle.reset_index(drop=True)
 
 tot = mean_fiss_f['f_235'] + mean_fiss_f['f_239'] + mean_fiss_f['f_238'] + mean_fiss_f['f_241']
 plot_function(
-    y_=[mean_fiss_f['f_235'], mean_fiss_f['f_239'], mean_fiss_f['f_238'], mean_fiss_f['f_241']],
     x_=[mean_fiss_f['f_239'], mean_fiss_f['f_239'], mean_fiss_f['f_239'], mean_fiss_f['f_239']],
+    y_=[mean_fiss_f['f_235'], mean_fiss_f['f_239'], mean_fiss_f['f_238'], mean_fiss_f['f_241']],
     label_=[r'F$_{235}$', 'F$_{239}$', 'F$_{238}$', 'F$_{241}$'], base_major=0.02, base_minor=0.01,
     styles=['b^', 'rs', 'gp', 'mH'], xlabel_=r'$F_{239}$', ylabel_=r'$F_{i}$', ylim=[0, 1]
 )
 
+plot_function(
+    x_=[fiss_f_1cycle['burnup'], fiss_f_1cycle['burnup'], fiss_f_1cycle['burnup'], fiss_f_1cycle['burnup']],
+    y_=[fiss_f_1cycle['f_235'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_238'], fiss_f_1cycle['f_241']],
+    label_=[r'f$_{235}$', r'f$_{239}$', r'f$_{238}$', 'f$_{241}$'], base_major=5000, base_minor=1000,
+    styles=['b-', 'r-', 'g-', 'm-'], xlabel_=r'burnup [MWd/tU]', ylabel_=r'$f_{i}$', ylim=[0, 1], xlim=[0, 20500]
+)
+
+plot_function(
+    x_=[fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239']],
+    y_=[fiss_f_1cycle['f_235'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_238'], fiss_f_1cycle['f_241']],
+    label_=[r'f$_{235}$', r'f$_{239}$', r'f$_{238}$', 'f$_{241}$'], base_major=0.05, base_minor=0.025,
+    styles=['b^', 'rs', 'gp', 'mH'], xlabel_=r'$f_{239}$', ylabel_=r'$f_{i}$', ylim=[0, 1],
+)
+
+plot_function(
+    x_=[mean_fiss_f['f_239'], mean_fiss_f['f_239'], mean_fiss_f['f_239'], mean_fiss_f['f_239'],
+        fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239']],
+    y_=[mean_fiss_f['f_235'], mean_fiss_f['f_239'], mean_fiss_f['f_238'], mean_fiss_f['f_241'],
+        fiss_f_1cycle['f_235'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_238'], fiss_f_1cycle['f_241']],
+    label_=[r'F$_{235}$', 'F$_{239}$', 'F$_{238}$', 'F$_{241}$', r'f$_{235}$', r'f$_{239}$', r'f$_{238}$', 'f$_{241}$'],
+    base_major=0.02, base_minor=0.01, xlabel_=r'$f_{239}$', ylabel_=r'$f_{i}$', ylim=[0, 1],  # xlim=[0, 20500],
+    styles=['b^', 'rs', 'gp', 'mH', 'b-', 'r-', 'g-', 'm-']
+)
+
+
+########################################################################################################################
+# time evolution of mean cross section per fission
+########################################################################################################################
+
+xs = react.eval_xs(E_t, which_xs="SV_approx", bool_protons=False)
+xs2 = react.eval_xs(E_t2, which_xs="SV_approx", bool_protons=False)
+xsf = np.zeros(len(fiss_f_1cycle.index))
+xsf2 = np.zeros(len(fiss_f_1cycle.index))
+xsf_hm = np.zeros(len(fiss_f_1cycle.index))
+# xsf_1cycle = np.zeros(len(fiss_f_1cycle.index))
+spectra = []
+spectra_hm = []
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=[10, 6.5], sharex=True, sharey=True, constrained_layout=True)
+for i_, ax in enumerate(axes.flat):
+    react.set_fission_fractions(fiss_f_1cycle['f_235'].iloc[i_], fiss_f_1cycle['f_239'].iloc[i_],
+                                fiss_f_1cycle['f_238'].iloc[i_], fiss_f_1cycle['f_241'].iloc[i_])
+    flux = react.reactor_model_dyb(E_t, dyb_input)
+    ax.plot(E_t, flux*xs, 'k-', label=r'F$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[i_], linewidth=1.,)
+    ax.legend()
+    ax.grid(alpha=0.65)
+    spectra.append(flux*xs)
+    spectra_hm.append(react.reactor_model_std(E_t, std_hm) * xs)
+    xsf[i_] = integrate.simps(flux*xs, E_t)
+    xsf2[i_] = integrate.simps(react.reactor_model_dyb(E_t2, dyb_input) * xs2, E_t2)
+    xsf_hm[i_] = integrate.simps(react.reactor_model_std(E_t, std_hm) * xs, E_t)
+
+styles = ['navy', 'blue', 'blueviolet', 'magenta', 'hotpink', 'coral', 'red', 'brown']
+ax = plot_function_residual(
+    x_=[E_t, E_t, E_t, E_t, E_t, E_t, E_t, E_t],
+    y_=spectra, styles=styles,
+    label_=[r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[0], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[1],
+            r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[2], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[3],
+            r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[4], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[5],
+            r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[6], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[7]],
+    ylabel_=r'spectrum [a.u.]', ylim=[-0.05e-43, 2.05e-43], ylim2=[-20, 0.25]
+)
+ax[0].text(0.1, 0.08, r'DYB model', transform=ax[0].transAxes)
+ax[1].get_legend().remove()
+
+ax = plot_function_residual(
+    x_=[E_t, E_t, E_t, E_t, E_t, E_t, E_t, E_t],
+    y_=spectra_hm, styles=styles,
+    label_=[r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[0], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[1],
+            r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[2], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[3],
+            r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[4], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[5],
+            r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[6], r'f$_{239}$ = %.4f' % fiss_f_1cycle['f_239'].iloc[7]],
+    ylabel_=r'spectrum [a.u.]', ylim=[-0.05e-43, 2.05e-43], ylim2=[-20, 0.25]
+)
+ax[0].text(0.1, 0.08, r'HM model', transform=ax[0].transAxes)
+ax[1].get_legend().remove()
+
 yl = r'$ \langle \sigma \rangle_f$ [\si{\centi\meter\squared}/fission]'
 plot_function(
-    x_=[mean_fiss_f['f_239'], mean_fiss_f['f_239'], mean_fiss_f['f_239'], mean_fiss_f['f_239']],
+    x_=[fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239'], fiss_f_1cycle['f_239'], mean_fiss_f['f_239']],
     y_=[xsf, xsf2, xsf_hm, mean_fiss_f['sig']*1.e-43],
-    xlabel_=r'$F_{239}$', ylabel_=yl, base_major=0.02, base_minor=0.01,
-    styles=['ko', 'bo', 'go', 'ro'],
+    xlabel_=r'$f_{239}$', ylabel_=yl, base_major=0.05, base_minor=0.025,
+    styles=['bo', 'go', 'ro', 'ko'],
     label_=[r'DYB 1.875-9 MeV', r'DYB 1.875-8.125 MeV', r'HM 1.875-9 MeV', r'DYB PRL 2017']
 )
 print("\nMean cross section per fission decreases during burnup")
@@ -154,51 +212,63 @@ print("beginning: {:.5e}; end: {:.5e}; difference: {:.2f}%".format(xsf[0], xsf[-
 # time evolution of mean energy per fission, fission rate, and neutrino detection rate
 ########################################################################################################################
 
-mean_e = np.zeros(len(mean_fiss_f.index))
-for i_ in mean_fiss_f.index:
-    mean_e[i_] = e_235*mean_fiss_f['f_235'].iloc[i_] + e_239*mean_fiss_f['f_239'].iloc[i_] \
-                 + e_238*mean_fiss_f['f_238'].iloc[i_] + e_241*mean_fiss_f['f_241'].iloc[i_]
-
-yl = r'$\langle E \rangle_f$ [\si{\MeV}/fission]'
-ax = plot_function(
-    x_=[mean_fiss_f['f_239']], y_=[mean_e], xlabel_=r'$F_{239}$', ylabel_=yl,
-    styles=['ko'], label_=['mean e'], base_major=0.02, base_minor=0.01
-)
-ax.get_legend().remove()
-print("\nMean energy per fission increases during burnup")
-print("beginning: {:.5e}; end: {:.5e}; difference: {:.2f}%".format(mean_e[0], mean_e[-1],
-                                                                   (mean_e[-1]-mean_e[0])/mean_e[0]*100))
-
 const = 6.241509e21
 w_th = 4.6  # GW - Taishan core
 L = 52.5e5  # TAO baseline in cm
 Np = react.eval_n_protons()
 eff = 0.822
+
+mean_e = np.zeros(len(fiss_f_1cycle.index))
+for i_ in fiss_f_1cycle.index:
+    mean_e[i_] = e_235*fiss_f_1cycle['f_235'].iloc[i_] + e_239*fiss_f_1cycle['f_239'].iloc[i_] \
+                 + e_238*fiss_f_1cycle['f_238'].iloc[i_] + e_241*fiss_f_1cycle['f_241'].iloc[i_]
+
 fission_rate = w_th/mean_e * const
 
-yl = r'fission rate [fission/s]'
+yl = r'$\langle E \rangle_f$ [\si{\MeV}/fission]'
 ax = plot_function(
-    x_=[mean_fiss_f['f_239']], y_=[fission_rate], xlabel_=r'$F_{239}$', ylabel_=yl,
-    styles=['ko'], label_=['fission rate'], base_major=0.02, base_minor=0.01
+    x_=[fiss_f_1cycle['f_239']], y_=[mean_e], xlabel_=r'$f_{239}$', ylabel_=yl,
+    styles=['ko', 'k-'], label_=['PRL 2017', '1 cycle (CPC2017)'], base_major=0.05, base_minor=0.025
 )
 ax.get_legend().remove()
-ax.text(0.3, 1.397e20, r'Taishan: W$_{\text{th}}$ = 4.6 \si{\giga\watt}')
+# ax1 = ax.twinx()
+# yl = r'fission rate [fission/s]'
+# ax1.set_ylabel(yl, color='r')
+# ax1.plot(mean_fiss_f['f_239'], fission_rate, 'ro', linewidth=1, markersize=4)
+# ax1.plot(fiss_f_1cycle['239Pu'], fission_rate_1cycle, 'r-', linewidth=1)
+# ax1.tick_params(axis='y', labelcolor='r')
+# ax1.text(0.45, 0.9, r'Taishan: W$_{\text{th}}$ = 4.6 \si{\giga\watt}', color='r', transform=ax1.transAxes)
+
+print("\nMean energy per fission increases during burnup")
+print("beginning: {:.5e}; end: {:.5e}; difference: {:.2f}%".format(mean_e[0], mean_e[-1],
+                                                                   (mean_e[-1]-mean_e[0])/mean_e[0]*100))
 print("\nFission rate decreases during burnup")
 print("beginning: {:.5e}; end: {:.5e}; difference: {:.2f}%".format(fission_rate[0], fission_rate[-1],
                                                                    (fission_rate[-1]-fission_rate[0])/fission_rate[0]*100))
 
+yl = r'fission rate [fission/s]'
+ax = plot_function(
+    x_=[fiss_f_1cycle['f_239']],
+    y_=[fission_rate],
+    xlabel_=r'$f_{239}$', ylabel_=yl,
+    styles=['ko', 'r-'], label_=['fission rate', 'fission rate 1 cycle'], base_major=0.05, base_minor=0.025
+)
+ax.get_legend().remove()
+ax.text(0.6, 0.8, r'Taishan: W$_{\text{th}}$ = 4.6 \si{\giga\watt}', transform=ax.transAxes)
+
+
 yl = r'antineutrino rate [$\bar{\nu}$/\si{s}]'
 nu_rate = fission_rate*xsf*Np*eff/(4*math.pi*L*L)
 ax = plot_function(
-    x_=[mean_fiss_f['f_239']], y_=[nu_rate], xlabel_=r'$F_{239}$', ylabel_=yl,
-    styles=['ko'], label_=['nu rate'], base_major=0.02, base_minor=0.01
+    x_=[fiss_f_1cycle['f_239']], y_=[nu_rate], xlabel_=r'$f_{239}$', ylabel_=yl,
+    styles=['ko', 'r-'], label_=['nu rate', 'nu rate 1 cycle'], base_major=0.05, base_minor=0.025
 )
 ax.get_legend().remove()
-ax.text(0.3, 2.84e-4, r'Taishan: W$_{\text{th}}$ = %f \si{\giga\watt}' % w_th, fontsize=12)
-ax.text(0.3, 2.835e-4, r'Baseline: L = %.1f \si{\km}' % (L*1.e-5), fontsize=12)
-ax.text(0.3, 2.83e-4, r'Number of protons: N = %.2e' % Np, fontsize=12)
-ax.text(0.3, 2.825e-4, r'IBD efficiency: $\epsilon$ = %.3f' % eff, fontsize=12)
-ax.text(0.3, 2.82e-4, r'NO neutrino oscillations', fontsize=12)
+ax.text(0.55, 0.85, r'\noindent Taishan: W$_{\text{th}}$ = %.1f \si{\giga\watt}\\Baseline: L = %.1f \si{\km}\\Number '
+                  r'of protons: N = %.2e\\IBD efficiency: $\epsilon$ = %.3f\\NO neutrino oscillations'
+        % (w_th, L*1.e-5, Np, eff),
+        fontsize=12, transform=ax.transAxes)
+
 print("\nAntineutrino rate decreases during burnup")
 print("beginning: {:.5e}; end: {:.5e}; difference: {:.2f}%".format(nu_rate[0], nu_rate[-1],
                                                                    (nu_rate[-1]-nu_rate[0])/nu_rate[0]*100))
@@ -210,49 +280,51 @@ print("beginning: {:.5e}; end: {:.5e}; difference: {:.2f}%".format(nu_rate[0], n
 
 # E_1 = np.arange(1.875, 3.005, 0.005)
 E = np.arange(1.875, 9.001, 0.005)
-bin_edges = [1.875, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]  # 6 bins
-bin_centers = [2.4375, 3.5, 4.5, 5.5, 6.5, 7.5]
-errorx = [0.5625, 0.5, 0.5, 0.5, 0.5, 0.5]
+bin_edges = [1.875, 3.0, 4.0, 5.0, 6.0, 7.0, 9.0]  # 6 bins
+bin_centers = [2.4375, 3.5, 4.5, 5.5, 6.5, 8]
+errorx = [0.5625, 0.5, 0.5, 0.5, 0.5, 1]
 
 fig, axes = plt.subplots(nrows=2, ncols=3, figsize=[10, 6.5], sharex=True, sharey=True, constrained_layout=True)
-ff_239 = np.arange(0.24, 0.365, 0.005)
+ff_239 = np.arange(0.15, 0.405, 0.005)
 coef_array = []
 coef_array_hm = []
 for j_, ax in enumerate(axes.flat):  # loop over energy bins
     xs_appo = np.where(E <= bin_edges[j_ + 1],
-                       np.where(bin_edges[j_] <= E, react.eval_xs(E, which_xs="SV_CI", bool_protons=False), 0.), 0.)
-    xsf_appo = np.zeros((len(mean_fiss_f.index)))
-    xsf_appo_hm = np.zeros((len(mean_fiss_f.index)))
-    for i_ in mean_fiss_f.index:  # loop over 239Pu fission fractions
-        react.set_fission_fractions(mean_fiss_f['f_235'].iloc[i_], mean_fiss_f['f_239'].iloc[i_],
-                                    mean_fiss_f['f_238'].iloc[i_], mean_fiss_f['f_241'].iloc[i_])
+                       np.where(bin_edges[j_] <= E, react.eval_xs(E, which_xs="SV_approx", bool_protons=False), 0.), 0.)
+    xsf_appo = np.zeros((len(fiss_f_1cycle.index)))
+    xsf_appo_hm = np.zeros((len(fiss_f_1cycle.index)))
+    for i_ in fiss_f_1cycle.index:  # loop over 239Pu fission fractions
+        react.set_fission_fractions(fiss_f_1cycle['f_235'].iloc[i_], fiss_f_1cycle['f_239'].iloc[i_],
+                                    fiss_f_1cycle['f_238'].iloc[i_], fiss_f_1cycle['f_241'].iloc[i_])
         flux_appo = np.where(E <= bin_edges[j_ + 1],
                              np.where(bin_edges[j_] <= E, react.reactor_model_dyb(E, dyb_input), 0.), 0.)
         flux_appo_hm = np.where(E <= bin_edges[j_ + 1],
                                 np.where(bin_edges[j_] <= E, react.reactor_model_std(E, std_hm), 0.), 0.)
         xsf_appo[i_] = integrate.simps(flux_appo*xs_appo, E)
         xsf_appo_hm[i_] = integrate.simps(flux_appo_hm*xs_appo, E)
-    ax.plot(mean_fiss_f['f_239'], xsf_appo / xsf_appo.mean(), 'bo', label='model data (DYB)')
-    ax.plot(mean_fiss_f['f_239'], xsf_appo_hm / xsf_appo_hm.mean(), 'ro', label='model data (HM)')
-    coef = np.polyfit(mean_fiss_f['f_239'], xsf_appo/xsf_appo.mean(), 1)
-    coef_hm = np.polyfit(mean_fiss_f['f_239'], xsf_appo_hm / xsf_appo_hm.mean(), 1)
+    ax.plot(fiss_f_1cycle['f_239'], xsf_appo / xsf_appo.mean(), 'bo', label='model data (DYB)')
+    ax.plot(fiss_f_1cycle['f_239'], xsf_appo_hm / xsf_appo_hm.mean(), 'ro', label='model data (HM)')
+    coef = np.polyfit(fiss_f_1cycle['f_239'], xsf_appo/xsf_appo.mean(), 1)
+    coef_hm = np.polyfit(fiss_f_1cycle['f_239'], xsf_appo_hm / xsf_appo_hm.mean(), 1)
     coef_array.append(coef[0])
     coef_array_hm.append(coef_hm[0])
     fit_line = np.poly1d(coef)
     fit_line_hm = np.poly1d(coef_hm)
     ax.plot(ff_239, fit_line(ff_239), 'b--', label='best fit (DYB)')
     ax.plot(ff_239, fit_line_hm(ff_239), 'r--', label='best fit (HM)')
-    ax.set_ylim([0.95, 1.05])
-    ax.set_xlim([0.24, 0.36])
+    ax.set_ylim([0.9, 1.1])
+    ax.set_xlim([0.15, 0.4])
     if j_ == 0 or j_ == 3:
         ax.set_ylabel(r'$S_j$/$\bar{S}_j$')
     if j_ == 3 or j_ == 4 or j_ == 5:
-        ax.set_xlabel(r'$F_{239}$')
+        ax.set_xlabel(r'$f_{239}$')
     ax.grid(alpha=0.65)
     e_range = r"E$_{\nu}$ = %.2f-%.2f MeV" % (bin_edges[j_], bin_edges[j_+1])
-    slope = r'$\bar{S}_j^{-1} d S_j/d F_{239}$ = %.2f' % coef[0]
-    ax.text(0.25, 0.97, e_range, fontsize=12)
-    ax.text(0.25, 0.96, slope, fontsize=12)
+    slope = r'$\bar{S}_j^{-1} d S_j/d f_{239}$ = %.2f (DYB)' % coef[0]
+    slope_hm = r'$\bar{S}_j^{-1} d S_j/d f_{239}$ = %.2f (HM)' % coef_hm[0]
+    ax.text(0.05, 0.21, e_range, fontsize=12, transform=ax.transAxes)
+    ax.text(0.05, 0.13, slope, fontsize=12, transform=ax.transAxes)
+    ax.text(0.05, 0.05, slope_hm, fontsize=12, transform=ax.transAxes)
 ax.legend(loc='upper right')
 
 plt.figure(figsize=[7, 4], constrained_layout=True)
@@ -261,25 +333,26 @@ plt.errorbar(bin_centers, coef_array, xerr=errorx, fmt='none', ecolor='b')
 plt.plot(bin_centers, coef_array_hm, 'r-', label='HM model')
 # plt.errorbar(bin_centers, coef_array_hm, xerr=errorx, fmt='none', ecolor='r')
 plt.grid()
-plt.xlabel(r'Neutrino energy [\si{\MeV}]')
+plt.xlabel(r'$E_{\nu}$ [\si{\MeV}]')
 plt.ylabel(r'$\bar{S}_j^{-1} d S_j/d F_{239}$')
 plt.ylim([-0.9, 0])
 plt.xlim([0, 10])
 plt.legend()
 
 
+react.set_fission_fractions(0.58, 0.3, 0.07, 0.05)
 osc = OscillationProbability(inputs_json)
 osc_no = osc.eval_vacuum_prob_no(E)
 flux = react.reactor_model_dyb(E, dyb_input) * w_th * const / mean_e.mean() * eff / (4*math.pi*L*L)
-xs = react.eval_xs(E, which_xs="SV_CI", bool_protons=True)
+xs = react.eval_xs(E, which_xs="SV_approx", bool_protons=True)
 norm = integrate.simps(flux*xs, E) * 86400
 norm2 = integrate.simps(flux*osc_no*xs, E) * 86400
 print("\nNumber of IBD/day without neutrino oscillation: {:.2f}".format(norm))
 print("\nNumber of IBD/day with neutrino oscillation: {:.2f}".format(norm2))
 
-plt.figure()
-plt.plot(E, flux*xs)
-plt.plot(E, flux*osc_no*xs)
+# plt.figure()
+# plt.plot(E, flux*xs)
+# plt.plot(E, flux*osc_no*xs)
 
 
 elapsed_time = time.perf_counter_ns() - time_start

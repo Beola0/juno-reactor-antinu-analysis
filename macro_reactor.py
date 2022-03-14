@@ -70,7 +70,7 @@ reactor_spectrum_dyb = react.unoscillated_reactor_spectrum(E, dyb_input, which_x
 # nominal_snf_noneq = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='HM', bool_snf=True, bool_noneq=True, plot_this=False)
 # nominal_hm = react.antinu_spectrum_no_osc(E, which_xs='SV_CI', which_isospectrum='DYB', plot_this=False)
 
-xsec_sv = react.eval_xs(E, which_xs="SV_CI")
+xsec_sv = react.eval_xs(E, which_xs="SV_CI", bool_protons=False)
 
 u235 = react.eval_235u(E, which_input='HM_parametric')
 pu239 = react.eval_239pu(E, which_input='HM_parametric')
@@ -85,13 +85,21 @@ ylabel1 = r'reactor spectrum [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]'
 ylabel2 = r'reactor flux [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
 ylabel3 = r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]'
 
-plot_function(x_=[E, E, E, E, E, E, E],
+ax = plot_function(x_=[E, E, E, E, E],# E, E],
               y_=[flux_hm, react.get_f235u() * u235, react.get_f239pu() * pu239, react.get_f238u() * u238,
-                  react.get_f241pu() * pu241, xsec_sv*2.e8, reactor_spectrum_hm*2500.],
+                  react.get_f241pu() * pu241], # xsec_sv*2.e8, reactor_spectrum_hm*2500.],
               label_=[r'total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu', r'$\sigma_{\text{IBD}}$',
                       r'$\bar{\nu}$ spectrum'],
               styles=['m', 'b--', 'r-.', 'g:', 'y', 'c', 'k'],
-              ylabel_='', xlim=None, ylim=None)
+              ylabel_=r'$S^{\text{iso}}(E_{\nu})$ [N$_{\nu}$/\si{MeV}/fission]', xlim=None, ylim=None)
+ax.get_legend().remove()
+ax1 = ax.twinx()
+ax1.set_ylabel(r'$\sigma_{\text{IBD}} [\si{\centi\meter\squared}]$', color='c')
+ax1.set_ylim(-0.25e-42, 6.e-42)
+ax1.plot(E, xsec_sv, 'c-', linewidth=1)
+ax1.tick_params(axis='y', labelcolor='c')
+# # ax2 = ax.twinx()
+ax1.plot(E, xsec_sv*flux_hm*30., 'k-', linewidth=1)
 
 plot_function(x_=[E, E, E], y_=[flux_v, flux_hm, flux_dyb],
               label_=[r'Vogel', r'HM', r'DYB'], styles=['g-', 'r--', 'k'],
