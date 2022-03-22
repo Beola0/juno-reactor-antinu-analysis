@@ -11,7 +11,7 @@ from scipy.interpolate import interp1d
 # - add SNF and NonEq contributions --> WIP
 # - add nuisances: for SNF and NonEq
 # - check interpolation and extrapolation methods for DYB-based reactor model - WIP
-# - correct NonEq for DYB model --> DONE
+# - correct NonEq for DYB model --> DONE --> needs further investigation
 # - include all possible scenarios for reactor model: EF tabulated data, HM tabulated data,
 #   SNF applied at the end, NonEq correction applied only to some isotopes, time dependence, ...
 
@@ -530,6 +530,47 @@ class UnoscillatedReactorSpectrum:
             print(f"{RED}Error: eval_total: instead got {which_input}.{NC}")
             sys.exit()
 
+    def get_input_spectrum_array(self, which_inputs_, xs_=False):  # as a 125x1 vector
+        energy = self.get_total_dyb().index.to_numpy()
+
+        if xs_:
+            xs = self.eval_xs(energy, bool_protons=False, which_xs='SV_approx')
+        else:
+            xs = np.ones(len(energy))
+
+        input_spectra = self.eval_total(energy, which_input=which_inputs_['total']) * xs
+        input_spectra = np.append(input_spectra, self.eval_235u(energy, which_input=which_inputs_['235U']) * xs)
+        input_spectra = np.append(input_spectra, self.eval_239pu(energy, which_input=which_inputs_['239Pu']) * xs)
+        input_spectra = np.append(input_spectra, self.eval_238u(energy, which_input=which_inputs_['238U']) * xs)
+        input_spectra = np.append(input_spectra, self.eval_241pu(energy, which_input=which_inputs_['241Pu']) * xs)
+
+        return input_spectra
+
+    def get_transformation_matrix(self, pu_combo=True):  # as a 25x125 matrix
+
+        # TODO: dyb fission fractions not hard-coded
+        f235_dyb = 0.564
+        f239_dyb = 0.304
+        f238_dyb = 0.076
+        f241_dyb = 0.056
+
+        df_235 = self.fiss_frac_235u - f235_dyb
+        df_239 = self.fiss_frac_239pu - f239_dyb
+        df_238 = self.fiss_frac_238u - f238_dyb
+        df_241 = self.fiss_frac_241pu - f241_dyb
+
+        if pu_combo:
+            df_241_eff = df_241 - 0.183 * df_239
+        else:
+            df_241_eff = df_241
+
+        id_25 = np.identity(25)
+        transf_matrix = np.block(
+            [id_25, df_235 * id_25, df_239 * id_25, df_238 * id_25, df_241_eff * id_25]
+        )
+
+        return transf_matrix
+
     ##################
     # Reactor Models #
     ##################
@@ -584,6 +625,17 @@ class UnoscillatedReactorSpectrum:
                                 + df_238 * s_238u + df_241 * s_241pu
 
         return self.iso_spectrum
+
+    def reactor_model_matrixform(self, nu_energy_, which_inputs_, pu_combo=True):
+        input_spectrum = self.get_input_spectrum_array(which_inputs_=which_inputs_)
+        r = self.get_transformation_matrix(pu_combo=pu_combo)
+
+        final_spectrum = np.dot(r, input_spectrum)  # 25x1 vector
+
+        f_appo = interp1d(self.get_total_dyb().index.to_numpy(), np.log(final_spectrum),
+                          kind='linear', fill_value="extrapolate")
+
+        return np.exp(f_appo(nu_energy_))
 
     # def isotopic_spectrum_vogel_parametric(self, nu_energy_, bool_noneq=False):  # to be deleted
     #     u235 = self.isotopic_spectrum_exp(nu_energy_, params_u235)
