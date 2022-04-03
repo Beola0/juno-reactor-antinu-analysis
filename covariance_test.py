@@ -108,7 +108,7 @@ if plot:
     )
     plot_function(
         x_=[huber_241pu.index], y_=[huber_241pu['spectrum']*xs], label_=[r'H '+Pu1],
-        ylabel_=r'$S_{241}$ [cm$^2$/MeV/fission]', styles=['bo']
+        ylabel_=r'$S_{241}$ [cm$^2$/MeV/fission]', styles=['bo'], y_sci=True
     )
     plot_function(
         x_=[huber_241pu.index], y_=[np.sqrt(np.diagonal(total_241pu_xs))/(huber_241pu['spectrum']*xs)], label_=[r'H '+Pu1],
@@ -173,7 +173,7 @@ if plot:
 
     plot_matrix(
         m_=total_238u_xs, xlabel_='bin', ylabel_='bin', title_=U8+r' total covariance',
-        label_=label_covariance_xs, fig_length=6.15, fig_height=5, shrink=1,
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5, shrink=1
     )
 
     plot_function(
@@ -181,7 +181,7 @@ if plot:
         ylabel_=r'$S_{238}$ [N$_{\nu}$/MeV/fission]', styles=['bo']
     )
     plot_function(
-        x_=[mueller_238u.index], y_=[EF_238u*xs], label_=[r'EF '+U8],
+        x_=[mueller_238u.index], y_=[EF_238u*xs], label_=[r'EF '+U8], y_sci=True,
         ylabel_=r'$S_{238}$ [cm$^2$/MeV/fission]', styles=['bo']
     )
 
@@ -237,46 +237,95 @@ if plot:
     )
     plot_matrix(
         m_=corr_dyb_pp, xlabel_='bin', ylabel_='bin', title_=r'DYB+PP - correlation', min_=-1, max_=1,
-        label_=r'Correlation', fig_length=6.15, fig_height=5, shrink=1, mode_='powerlaw'
+        label_=r'Correlation', fig_length=6.15, fig_height=5, shrink=1
     )
 
 
 ########################################################################################################################
-# reshape of covariance matrix through toyMC
+# reshape of covariance matrix through toyMC vs interpolation
 ########################################################################################################################
 plot = False
 
 N_samples = 100
 new_bins = react.get_235u_dyb().index
+# reshaping matrix for isotopic spectrum without cross section --> can use exponential interpolation
 new_cov_238u, nn = generate_covariance_matrices.reshape_cov_matrix(new_bins, mueller_238u.index.to_numpy(),
                                                                    EF_238u, total_238u, n_samples_=N_samples)
 new_cov_241pu, nn2 = generate_covariance_matrices.reshape_cov_matrix(new_bins, huber_241pu.index.to_numpy(),
                                                                      huber_241pu["spectrum"].to_numpy(), total_241pu,
                                                                      n_samples_=N_samples)
 
-# new_bins_2 = np.arange(1.925, 8.125, 0.125)
-new_bins_2 = np.arange(2, 8.25, 0.125)
-new_cov_238u_2, nn_2 = generate_covariance_matrices.reshape_cov_matrix(new_bins_2, mueller_238u.index.to_numpy(),
-                                                                       EF_238u, total_238u, n_samples_=N_samples)
-new_cov_241pu_2, nn2_2 = generate_covariance_matrices.reshape_cov_matrix(new_bins_2, huber_241pu.index.to_numpy(),
-                                                                         huber_241pu["spectrum"].to_numpy(),
-                                                                         total_241pu, n_samples_=N_samples)
+new_bins_50 = np.arange(2, 8.25, 0.125)
+new_cov_238u_50, nn_50 = generate_covariance_matrices.reshape_cov_matrix(new_bins_50, mueller_238u.index.to_numpy(),
+                                                                         EF_238u, total_238u, n_samples_=N_samples)
+new_cov_241pu_50, nn2_50 = generate_covariance_matrices.reshape_cov_matrix(new_bins_50, huber_241pu.index.to_numpy(),
+                                                                           huber_241pu["spectrum"].to_numpy(),
+                                                                           total_241pu, n_samples_=N_samples)
+
+new_bins_100 = np.arange(2, 8.25, 0.0625)
+new_cov_238u_100, nn_100 = generate_covariance_matrices.reshape_cov_matrix(new_bins_100, mueller_238u.index.to_numpy(),
+                                                                           EF_238u, total_238u, n_samples_=N_samples)
+new_cov_241pu_100, nn2_100 = generate_covariance_matrices.reshape_cov_matrix(new_bins_100, huber_241pu.index.to_numpy(),
+                                                                             huber_241pu["spectrum"].to_numpy(),
+                                                                             total_241pu, n_samples_=N_samples)
+
+new_bins_200 = np.arange(2, 8.25, 0.03125)
+new_cov_238u_200, nn_200 = generate_covariance_matrices.reshape_cov_matrix(new_bins_200, mueller_238u.index.to_numpy(),
+                                                                           EF_238u, total_238u, n_samples_=N_samples)
+new_cov_241pu_200, nn2_200 = generate_covariance_matrices.reshape_cov_matrix(new_bins_200, huber_241pu.index.to_numpy(),
+                                                                             huber_241pu["spectrum"].to_numpy(),
+                                                                             total_241pu, n_samples_=N_samples)
 
 xs_reshape = react.eval_xs(new_bins, which_xs='SV_approx', bool_protons=False)
-
 nnn = len(new_bins)
 for i in np.arange(nnn):
     for j in np.arange(nnn):
         new_cov_238u[i, j] = new_cov_238u[i, j] * xs_reshape[i] * xs_reshape[j]
         new_cov_241pu[i, j] = new_cov_241pu[i, j] * xs_reshape[i] * xs_reshape[j]
 
-xs_reshape_2 = react.eval_xs(new_bins_2, which_xs='SV_approx', bool_protons=False)
-new_cov_238u_2_xs = np.zeros((len(new_bins_2), len(new_bins_2)))
-new_cov_241pu_2_xs = np.zeros((len(new_bins_2), len(new_bins_2)))
-for i in np.arange(len(new_bins_2)):
-    for j in np.arange(len(new_bins_2)):
-        new_cov_238u_2_xs[i, j] = new_cov_238u_2[i, j] * xs_reshape_2[i] * xs_reshape_2[j]
-        new_cov_241pu_2_xs[i, j] = new_cov_241pu_2[i, j] * xs_reshape_2[i] * xs_reshape_2[j]
+xs_reshape_50 = react.eval_xs(new_bins_50, which_xs='SV_approx', bool_protons=False)
+new_cov_238u_50_xs = np.zeros((len(new_bins_50), len(new_bins_50)))
+new_cov_241pu_50_xs = np.zeros((len(new_bins_50), len(new_bins_50)))
+for i in np.arange(len(new_bins_50)):
+    for j in np.arange(len(new_bins_50)):
+        new_cov_238u_50_xs[i, j] = new_cov_238u_50[i, j] * xs_reshape_50[i] * xs_reshape_50[j]
+        new_cov_241pu_50_xs[i, j] = new_cov_241pu_50[i, j] * xs_reshape_50[i] * xs_reshape_50[j]
+
+xs_reshape_100 = react.eval_xs(new_bins_100, which_xs='SV_approx', bool_protons=False)
+new_cov_241pu_100_xs = np.zeros((len(new_bins_100), len(new_bins_100)))
+new_cov_238u_100_xs = np.zeros((len(new_bins_100), len(new_bins_100)))
+for i in np.arange(len(new_bins_100)):
+    for j in np.arange(len(new_bins_100)):
+        new_cov_238u_100_xs[i, j] = new_cov_238u_100[i, j] * xs_reshape_100[i] * xs_reshape_100[j]
+        new_cov_241pu_100_xs[i, j] = new_cov_241pu_100[i, j] * xs_reshape_100[i] * xs_reshape_100[j]
+
+xs_reshape_200 = react.eval_xs(new_bins_200, which_xs='SV_approx', bool_protons=False)
+new_cov_238u_200_xs = np.zeros((len(new_bins_200), len(new_bins_200)))
+new_cov_241pu_200_xs = np.zeros((len(new_bins_200), len(new_bins_200)))
+for i in np.arange(len(new_bins_200)):
+    for j in np.arange(len(new_bins_200)):
+        new_cov_238u_200_xs[i, j] = new_cov_238u_200[i, j] * xs_reshape_200[i] * xs_reshape_200[j]
+        new_cov_241pu_200_xs[i, j] = new_cov_241pu_200[i, j] * xs_reshape_200[i] * xs_reshape_200[j]
+
+# interpolation of the covariance matrix
+f = interpolate.interp2d(mueller_238u.index, mueller_238u.index, total_238u, kind='linear')
+new_cov_238u_interp = f(new_bins, new_bins)
+new_cov_238u_interp_50 = f(new_bins_50, new_bins_50)
+
+f = interpolate.interp2d(huber_241pu.index, huber_241pu.index, np.log(total_241pu), kind='linear')
+new_cov_241pu_interp = np.exp(f(new_bins, new_bins))
+new_cov_241pu_interp_50 = np.exp(f(new_bins_50, new_bins_50))
+
+# multiply by cross section
+for i_ in np.arange(len(new_bins)):
+    for j_ in np.arange(len(new_bins)):
+        new_cov_238u_interp[i_, j_] = new_cov_238u_interp[i_, j_] * xs_reshape[i_] * xs_reshape[j_]
+        new_cov_241pu_interp[i_, j_] = new_cov_241pu_interp[i_, j_] * xs_reshape[i_] * xs_reshape[j_]
+
+for i_ in np.arange(len(new_bins_50)):
+    for j_ in np.arange(len(new_bins_50)):
+        new_cov_238u_interp_50[i_, j_] = new_cov_238u_interp_50[i_, j_] * xs_reshape_50[i_] * xs_reshape_50[j_]
+        new_cov_241pu_interp_50[i_, j_] = new_cov_241pu_interp_50[i_, j_] * xs_reshape_50[i_] * xs_reshape_50[j_]
 
 #
 # plt.figure(constrained_layout=True)
@@ -293,105 +342,119 @@ for i in np.arange(len(new_bins_2)):
 # plt.plot(new_binning, new_central_values, 'ro', markersize=4)
 # plt.grid(alpha=0.65)
 if plot:
+    max_val_238u = max(total_238u_xs.max(), new_cov_238u.max(), new_cov_238u_50_xs.max(),
+                        new_cov_238u_100_xs.max(), new_cov_238u_200_xs.max(), new_cov_238u_interp.max())
     plot_matrix(
-        m_=new_cov_238u, xlabel_='bin', ylabel_='bin', title_=U8+r' reshaped cov matrix',
-        label_=label_covariance_xs, fig_length=6.15, fig_height=5
+        m_=total_238u_xs, xlabel_='bin', ylabel_='bin', title_=U8+r' total cov matrix',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_238u, min_=-max_val_238u, mode_='norm'
     )
-
     plot_matrix(
-        m_=new_cov_241pu, xlabel_='bin', ylabel_='bin', title_=Pu1+r' reshaped cov matrix',
-        label_=label_covariance_xs, fig_length=6.15, fig_height=5
+        m_=new_cov_238u, xlabel_='bin', ylabel_='bin', title_=U8+r' reshaped cov matrix - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_238u, min_=-max_val_238u, mode_='norm'
     )
-
-    plot_two_matrices(
-        [total_238u_xs, new_cov_238u], xlabel_='bin', ylabel_='bin', label_=label_covariance_xs, origin_='lower',
-        fig_length=12.3, fig_height=5, titles_=["Input", r'Output from ToyMC - %i samples' % N_samples],
-        constrained_layout_=True, shrink=1
-    )
-
-    plot_two_matrices(
-        [total_241pu_xs, new_cov_241pu], xlabel_='bin', ylabel_='bin', label_=label_covariance_xs, origin_='lower',
-        fig_length=12.3, fig_height=5, titles_=["Input", r'Output from ToyMC - %i samples' % N_samples],
-        constrained_layout_=True, shrink=1
-    )
-
     plot_matrix(
-        m_=new_cov_238u_2_xs, xlabel_='bin', ylabel_='bin', title_=U8+r' reshaped cov matrix',
-        label_=label_covariance_xs, fig_length=6.15, fig_height=5
+        m_=new_cov_238u_50_xs, xlabel_='bin', ylabel_='bin', title_=U8+r' - 50 bins - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_238u, min_=-max_val_238u, mode_='norm'
     )
-
     plot_matrix(
-        m_=new_cov_241pu_2_xs, xlabel_='bin', ylabel_='bin', title_=Pu1+r' reshaped cov matrix',
-        label_=label_covariance_xs, fig_length=6.15, fig_height=5
+        m_=new_cov_238u_100_xs, xlabel_='bin', ylabel_='bin', title_=U8+r' - 100 bins - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_238u, min_=-max_val_238u, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_238u_200_xs, xlabel_='bin', ylabel_='bin', title_=U8+r' - 200 bins - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_238u, min_=-max_val_238u, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_238u_interp, xlabel_='bin', ylabel_='bin', title_=U8+r' - interpolated',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_238u, min_=-max_val_238u, mode_='norm'
     )
 
-    plot_two_matrices(
-        [total_238u_xs, new_cov_238u_2_xs], xlabel_='bin', ylabel_='bin', label_=label_covariance_xs, origin_='lower',
-        fig_length=12.3, fig_height=5, titles_=["Input", r'Output from ToyMC - %i samples' % N_samples],
-        constrained_layout_=True, shrink=1
+    max_val_241pu = max(total_241pu_xs.max(), new_cov_241pu.max(), new_cov_241pu_50_xs.max(),
+                        new_cov_241pu_100_xs.max(), new_cov_241pu_200_xs.max(), new_cov_241pu_interp.max(),
+                        new_cov_241pu_interp_50.max())
+    plot_matrix(
+        m_=total_241pu_xs, xlabel_='bin', ylabel_='bin', title_=Pu1+r' total cov matrix',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_241pu, min_=-max_val_241pu, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_241pu, xlabel_='bin', ylabel_='bin', title_=Pu1+r' reshaped cov matrix - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_241pu, min_=-max_val_241pu, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_241pu_50_xs, xlabel_='bin', ylabel_='bin', title_=Pu1+r' - 50 bins - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_241pu, min_=-max_val_241pu, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_241pu_100_xs, xlabel_='bin', ylabel_='bin', title_=Pu1+r' - 100 bins - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_241pu, min_=-max_val_241pu, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_241pu_200_xs, xlabel_='bin', ylabel_='bin', title_=Pu1+r' - 200 bins - '+str(N_samples)+' samples',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_241pu, min_=-max_val_241pu, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_241pu_interp, xlabel_='bin', ylabel_='bin', title_=Pu1+r' - interpolated',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_241pu, min_=-max_val_241pu, mode_='norm'
+    )
+    plot_matrix(
+        m_=new_cov_241pu_interp_50, xlabel_='bin', ylabel_='bin', title_=Pu1+r' - interpolated - 50 bins',
+        label_=label_covariance_xs, fig_length=6.15, fig_height=5,
+        max_=max_val_241pu, min_=-max_val_241pu, mode_='norm'
     )
 
-    plot_two_matrices(
-        [total_241pu_xs, new_cov_241pu_2_xs], xlabel_='bin', ylabel_='bin', label_=label_covariance_xs, origin_='lower',
-        fig_length=12.3, fig_height=5, titles_=["Input", r'Output from ToyMC - %i samples' % N_samples],
-        constrained_layout_=True, shrink=1
-    )
 
 ########################################################################################################################
 # total covariance
 ########################################################################################################################
 plot = False
 
-# interpolating 238U and 241Pu matrices
+N_samples = 1000
 energy = react.get_235u_dyb().index
-xs = react.eval_xs(energy, bool_protons=False, which_xs='SV_approx')
+new_238u, nn = generate_covariance_matrices.reshape_cov_matrix(energy, mueller_238u.index.to_numpy(),
+                                                                   EF_238u, total_238u, n_samples_=N_samples)
+new_241pu, nn2 = generate_covariance_matrices.reshape_cov_matrix(energy, huber_241pu.index.to_numpy(),
+                                                                     huber_241pu["spectrum"].to_numpy(), total_241pu,
+                                                                     n_samples_=N_samples)
 
-f = interpolate.interp2d(mueller_238u.index, mueller_238u.index, total_238u, kind='linear')
-new_total_238u = f(energy, energy)
-
-f = interpolate.interp2d(huber_241pu.index, huber_241pu.index, np.log(total_241pu), kind='linear')
-new_total_241pu = np.exp(f(energy, energy))
-
-# multiply by cross section
-for i_ in np.arange(len(energy)):
-    for j_ in np.arange(len(energy)):
-        new_total_238u[i_, j_] = new_total_238u[i_, j_] * xs[i_] * xs[j_]
-        new_total_241pu[i_, j_] = new_total_241pu[i_, j_] * xs[i_] * xs[j_]
-
+xs_reshape = react.eval_xs(energy, which_xs='SV_approx', bool_protons=False)
+for i in np.arange(len(energy)):
+    for j in np.arange(len(energy)):
+        new_238u[i, j] = new_238u[i, j] * xs_reshape[i] * xs_reshape[j]
+        new_241pu[i, j] = new_241pu[i, j] * xs_reshape[i] * xs_reshape[j]
 
 # using covariance matrix for DYB with new order
+# using reshaped matrices for 241Pu and 238U
 total = np.block([
     [reordered_cov_dyb, np.zeros((N_dyb, N_m+N_h))],
-    [np.zeros((N_m, N_dyb)), new_cov_238u, np.zeros((N_m, N_h))],
-    [np.zeros((N_h, N_dyb+N_m)), new_cov_241pu]
+    [np.zeros((N_m, N_dyb)), new_238u, np.zeros((N_m, N_h))],
+    [np.zeros((N_h, N_dyb+N_m)), new_241pu]
 ])
-np.save(path+'/total_covariance_125x125.npy', total)
+# np.save(path+'/total_covariance_125x125.npy', total)
 
 if plot:
     plot_matrix(
         m_=total, xlabel_='bin', ylabel_='bin', title_=r'total', mode_='powerlaw',
         label_=label_covariance_xs, fig_length=6.15, fig_height=5
     )
-
     plot_matrix(
-        m_=new_total_238u, xlabel_='bin', ylabel_='bin', title_=U8+r' total interpolated',
+        m_=new_238u, xlabel_='bin', ylabel_='bin', title_=U8+r' reshaped', mode_='centered',
         label_=label_covariance_xs, fig_length=6.15, fig_height=5
     )
     plot_matrix(
-        m_=new_total_241pu, xlabel_='bin', ylabel_='bin', title_=Pu1+r' total interpolated',
+        m_=new_241pu, xlabel_='bin', ylabel_='bin', title_=Pu1+r' reshaped', mode_='centered',
         label_=label_covariance_xs, fig_length=6.15, fig_height=5
-    )
-
-    plot_two_matrices(
-        [total_238u_xs, new_total_238u], xlabel_='bin', ylabel_='bin', label_=label_covariance_xs, origin_='lower',
-        fig_length=12.3, fig_height=5, titles_=["Input", r'Output from interpolation'],
-        constrained_layout_=True, shrink=1
-    )
-
-    plot_two_matrices(
-        [total_241pu_xs, new_total_241pu], xlabel_='bin', ylabel_='bin', label_=label_covariance_xs, origin_='lower',
-        fig_length=12.3, fig_height=5, titles_=["Input", r'Output from interpolation'],
-        constrained_layout_=True, shrink=1
     )
 
 
@@ -485,7 +548,7 @@ if plot:
     ylabel = r'spectrum [cm$^2$/MeV/fission]'
     ax = plot_function(
         x_=[np.arange(125)], y_=[input_spectra], styles=['bo'], label_=['spectrum'], ylabel_=ylabel,
-        base_major=10.0, base_minor=5.0, xlabel_=r'bin'
+        base_major=10.0, base_minor=5.0, xlabel_=r'bin', y_sci=True
     )
     ax.get_legend().remove()
 
@@ -530,17 +593,17 @@ if plot:
         ylabel_=r'relative uncert. - matrix approach', styles=['bo'], ylim=[0, 0.2]
     )
 
-    # plt.figure(figsize=[7., 4.], constrained_layout=True)
-    # for i_ in np.arange(N_smp):
-    #     plt.plot(np.arange(len(input_spectra)), input_samples[i_])
-    # plt.plot(np.arange(len(input_spectra)), input_spectra, 'ko', markersize=4)
-    # plt.grid(alpha=0.65)
-    #
-    # plt.figure(constrained_layout=True)
-    # for i_ in np.arange(N_smp):
-    #     plt.plot(energy, juno_samples[i_])
-    # plt.plot(energy, juno_matrix, 'ko', markersize=4)
-    # plt.grid(alpha=0.65)
+    plt.figure(figsize=[7., 4.], constrained_layout=True)
+    for i_ in np.arange(100):
+        plt.plot(np.arange(len(input_spectra)), input_samples[i_])
+    plt.plot(np.arange(len(input_spectra)), input_spectra, 'ko', markersize=4)
+    plt.grid(alpha=0.65)
+
+    plt.figure(constrained_layout=True)
+    for i_ in np.arange(100):
+        plt.plot(energy, juno_samples[i_])
+    plt.plot(energy, juno_matrix, 'ko', markersize=4)
+    plt.grid(alpha=0.65)
 
     plot_matrix(
         m_=cov_toyMC, xlabel_='bin', ylabel_='bin', title_=r'Covariance - toyMC (%s samples)' % N_smp, origin_='lower',
@@ -552,6 +615,49 @@ if plot:
         fig_length=12.3, fig_height=5, titles_=[r'Analytical', r'from ToyMC - %i samples' % N_smp],
         constrained_layout_=True, shrink=1
     )
+
+
+########################################################################################################################
+# Covariance matrix of fission fractions
+########################################################################################################################
+plot = False
+
+col_names = ['Burnup', '235U-238U', '235U-239Pu', '235U-241Pu', '238U-239Pu', '238U-241Pu', '239Pu-241Pu']
+path = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/fission_fractions/'
+ff_cov_raw = pd.read_csv(path+'fission_fraction_covariance_Ma2017.csv', sep=',',
+                                skiprows=1, header=None, index_col=0, names=col_names)
+
+i_ = 0
+corr_initial = np.block([
+    [1., ff_cov_raw['235U-238U'].iloc[i_], ff_cov_raw['235U-239Pu'].iloc[i_], ff_cov_raw['235U-241Pu'].iloc[i_]],
+    [ff_cov_raw['235U-238U'].iloc[i_], 1., ff_cov_raw['238U-239Pu'].iloc[i_], ff_cov_raw['238U-241Pu'].iloc[i_]],
+    [ff_cov_raw['235U-239Pu'].iloc[i_], ff_cov_raw['238U-239Pu'].iloc[i_], 1., ff_cov_raw['239Pu-241Pu'].iloc[i_]],
+    [ff_cov_raw['235U-241Pu'].iloc[i_], ff_cov_raw['238U-241Pu'].iloc[i_], ff_cov_raw['239Pu-241Pu'].iloc[i_], 1.],
+])
+
+i_ = -1
+corr_final = np.block([
+    [1., ff_cov_raw['235U-238U'].iloc[i_], ff_cov_raw['235U-239Pu'].iloc[i_], ff_cov_raw['235U-241Pu'].iloc[i_]],
+    [ff_cov_raw['235U-238U'].iloc[i_], 1., ff_cov_raw['238U-239Pu'].iloc[i_], ff_cov_raw['238U-241Pu'].iloc[i_]],
+    [ff_cov_raw['235U-239Pu'].iloc[i_], ff_cov_raw['238U-239Pu'].iloc[i_], 1., ff_cov_raw['239Pu-241Pu'].iloc[i_]],
+    [ff_cov_raw['235U-241Pu'].iloc[i_], ff_cov_raw['238U-241Pu'].iloc[i_], ff_cov_raw['239Pu-241Pu'].iloc[i_], 1.],
+])
+
+if plot:
+    label = U5 + r"$\qquad$" + U8 + r"$\qquad$" + Pu9 + r"$\qquad$" + Pu1
+    ax = plot_matrix(
+        m_=corr_initial, xlabel_=label, ylabel_=label, title_=r'correlation - begin of cycle', origin_='lower',
+        label_=r'correlation', fig_length=6.15, fig_height=5
+    )
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+
+    ax = plot_matrix(
+        m_=corr_final, xlabel_=label, ylabel_=label, title_=r'correlation - end of cycle', origin_='lower',
+        label_=r'correlation', fig_length=6.15, fig_height=5
+    )
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
 
 
 elapsed_time = time.perf_counter_ns() - time_start

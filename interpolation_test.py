@@ -96,7 +96,7 @@ xlim = [-0.2, 10.3]
 ylim = [-0.1, 3.1]
 
 if plot:
-    ylabel = r'isotopic spectrum [N$_{\nu}$/\si{\MeV}/fission]'
+    ylabel = r'isotopic spectrum [N$_{\nu}$/MeV/fission]'
     ax = plot_function(
         x_=[u235_m.index, u238_m.index, pu239_m.index, pu241_m.index],
         y_=[u235_m["spectrum"], u238_m["spectrum"], pu239_m["spectrum"], pu241_m["spectrum"]],
@@ -129,7 +129,7 @@ if plot:
     )
     ax.axvline(1.806, 0, 1, color='k', linestyle=':')
 
-    ylabel_pp = r'reactor spectrum [\si{\centi\meter\squared}/\si{\MeV}/fission]'
+    ylabel_pp = r'reactor spectrum [cm$^2$/MeV/fission]'
     ax = plot_function(
         x_=[unfolded_u235.index, unfolded_pu_combo.index, unfolded_total.index],
         y_=[unfolded_u235["IBD_spectrum"], unfolded_pu_combo["IBD_spectrum"], unfolded_total["IBD_spectrum"]],
@@ -210,14 +210,14 @@ xs_dyb_5 = unfolded_u235["IBD_spectrum"]/unfolded_u235["spectrum"]
 xs_dyb_pu = unfolded_pu_combo["IBD_spectrum"]/unfolded_pu_combo["spectrum"]
 
 if plot:
-    ylabel = r'$\sigma_{\text{IBD}}$ [\si{\centi\meter\squared}/proton]'
-    # ylabel = r'$\sigma_{\text{IBD}} \times N_P$ [\si{\centi\meter\squared}]'
+    ylabel = r'$\sigma_{\textrm{{\small{IBD}}}}$ [cm$^2$/proton]'
+    # ylabel = r'$\sigma_{\textrm{{\small{IBD}}}} \times N_P$ [cm$^2$]'
     ax = plot_function_residual(
         x_=[E, E, E],
         y_=[react.eval_xs(E, which_xs="SV_CI", bool_protons=False),
             react.eval_xs(E, which_xs="VB_CI", bool_protons=False),
             react.eval_xs(E, which_xs="SV_approx", bool_protons=False)],
-        label_=[r'SV$_\text{ci}$', r'VB$_\text{ci}$', r'SV$_\text{approx}$'], styles=['k-', 'r--', 'b-.'],
+        label_=[r'SV$_\textrm{{\small{ci}}}$', r'VB$_\textrm{{\small{ci}}}$', r'SV$_\textrm{{\small{approc}}}$'], styles=['k-', 'r--', 'b-.'],
         ylabel_=ylabel, ylim2=[-2, 4]
     )
     ax[1].legend(loc='upper right')
@@ -285,8 +285,8 @@ react.set_fission_fractions(0.58, 0.30, 0.07, 0.05)  # back to JUNO fission frac
 
 ### PLOTS
 if plot:
-    ylabel = r'isotopic spectrum [N$_{\nu}$/fission/MeV]'
-    ylabel2 = r'DYB total [\si{\centi\meter\squared}/fission/MeV]'
+    ylabel = r'isotopic spectrum [N$_{\nu}$/MeV/fission]'
+    ylabel2 = r'DYB total [cm$^2$/MeV/fission]'
     plot_function(
         x_=[E, E, E, unfolded_total.index], y_=[s_total_lin(E), s_total_quad(E), s_total_cub(E), unfolded_total["spectrum"]],
         label_=[r'linear', r'quadratic', r'cubic', r'DYB'], styles=['r', 'b--', 'g:', 'ko'],
@@ -295,7 +295,7 @@ if plot:
     ax = plot_function_residual(
         x_=[E, E], y_=[s_total_exp*xsec_sv, JUNO_exp*xsec_sv],
         label_=[r'DYB total', r'JUNO total'], styles=['r', 'b--'],
-        ylabel_=r'DYB model [\si{\centi\meter\squared}/fission/MeV]',
+        ylabel_=r'DYB model [cm$^2$/MeV/fission]',
         xlim=None, ylim=None, ylim2=[-1.2, 1.3]
     )
     ax[0].axvline(8.65, 0, 1, color='k', linestyle='--', linewidth=1)
@@ -325,7 +325,7 @@ if plot:
         x_=[E],
         y_=[react.reactor_model_std(E, std_hm)*xsec_sv],
         label_=[r'HM'], styles=['b'],
-        ylabel_=r'vanilla model [\si{\centi\meter\squared}/fission/MeV]', xlim=None, ylim=None
+        ylabel_=r'vanilla model [cm$^2$/MeV/fission]', xlim=None, ylim=None
     )
     ax.axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
     ax.axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
@@ -358,7 +358,7 @@ hm_238 = react.eval_238u(E, which_input="Mueller")
 JUNO_hm = react.reactor_model_std(E, std_hm)
 
 if plot:
-    ylabel = r'isotopic spectrum $\times\,\sigma_{\text{IBD}}$ [a.u.]'
+    ylabel = r'isotopic spectrum $\times\,\sigma_{\textrm{{\small{IBD}}}}$ [a.u.]'
     ax = plot_function_residual(
         x_=[E, E], y_=[ef_235*xsec_sv, hm_235*xsec_sv], ylim2=[-5, 20],
         label_=[r'EF '+U5, r'HM '+U5], styles=['r', 'b-.'], ylabel_=ylabel
@@ -410,6 +410,7 @@ if plot:
     ax[1].axvline(8, 0, 1, color='k', linestyle='--', linewidth=1)
     ax[1].axvline(2, 0, 1, color='k', linestyle='--', linewidth=1)
 
+
 ########################################################################################################################
 # final comparison
 ########################################################################################################################
@@ -443,7 +444,7 @@ def dyb_ef_spectrum(x_, opt_=''):
     return y_
 
 
-plot = False
+plot = True
 react.set_fission_fractions(0.58, 0.30, 0.07, 0.05)
 flux_hm = react.reactor_model_std(E, std_hm)
 E2 = np.arange(8.5, 12.01, 0.005)
@@ -457,7 +458,7 @@ if plot:
     plot_function(
         x_=[E, E, E, E],
         y_=[JUNO_ef*xsec_sv, JUNO_hm*xsec_sv, flux_hm * xsec_sv * dyb_correction, JUNO_exp*xsec_sv],
-        label_=[r'EF vanilla', r'HM vanilla', 'HM vanilla+corrections', r'DYB model'],
+        label_=[r'EF vanilla', r'HM vanilla', 'HM vanilla+corrections', r'DYB model'], y_sci=True,
         styles=['r--', 'b-.', 'g-.', 'k-'],
         ylabel_=r'JUNO reactor spectrum [a.u.]'  # ,ylim2=[-12, 20]
     )
@@ -467,7 +468,7 @@ if plot:
     ax = plot_function(
         x_=[E],  # E, E, E],
         y_=[dyb_correction],  # JUNO_exp/JUNO_hm, JUNO_exp/JUNO_ef], # JUNO_ef/JUNO_hm],
-        label_=[r'CI 2016: DYB/HM', 'DYB(2021)/HM(2011)', 'DYB(2021)/EF(2019)', 'EF(2019)/HM(2011)'],
+        label_=[r'CI 2016: DYB/HM', 'DYB(2021)/HM(2011)', 'DYB(2021)/EF(2019)', 'EF(2019)/HM(2011)'], y_sci=True,
         styles=['k-', 'b-.', 'r--', 'g-.'], ylabel_=r'ratios', ylim=[0.8, 1.2],
     )
     ax.legend(loc='upper left')
@@ -476,7 +477,7 @@ if plot:
     plot_function(
         x_=[unfolded_total.index, E, E],
         y_=[juno_points*xsec_sv_dyb, JUNO_ef*xsec_sv, dyb_ef_spectrum(E)*xsec_sv],
-        label_=[r"DYB", r"EF - exp", r"DYB+EF"],
+        label_=[r"DYB", r"EF - exp", r"DYB+EF"], y_sci=True,
         styles=['ko', 'r-', 'b--'], ylabel_=r'JUNO spectrum [a.u.]'
     )
 
@@ -486,7 +487,7 @@ if plot:
         y_=[juno_points.values[-1] * react.eval_xs(E_t, which_xs="SV_approx"), dyb_spectrum(E2) * xs_e2,
             ef_spectrum(E2) * xs_e2,
             dyb_ef_spectrum(E2) * xs_e2, dyb_ef_spectrum(E2, opt_="s") * xs_e2],
-        label_=[r"DYB", "DYB - exp", r"EF - exp", r"DYB+EF", r"DYB+EF s", r"DYB+EF t"],
+        label_=[r"DYB", "DYB - exp", r"EF - exp", r"DYB+EF", r"DYB+EF s", r"DYB+EF t"], y_sci=True,
         styles=['ko', 'k-', 'r-', 'b--', 'g--'], ylabel_=r'JUNO spectrum [a.u.]'
     )
     ax.legend(loc="upper right")
@@ -496,7 +497,7 @@ if plot:
         y_=[react.eval_238u(E, which_input="Mueller")*xsec_sv, react.eval_238u(E, which_input="EF")*xsec_sv,
             react.eval_238u(E, which_input="Haag")*xsec_sv, react.eval_238u(E, which_input="Kopeikin")*xsec_sv],
         label_=[r"M " + U8, r"EF " + U8, r"Haag " + U8, r"Kpk " + U8],
-        styles=['g--', 'k--', 'r-.', 'y-.'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
+        styles=['g--', 'k--', 'r-.', 'y-.'], ylabel_=r'isotopic spectrum $\times \sigma_{\textrm{{\small{IBD}}}}$ [a.u.]'
     )
     ax[1].legend(loc="upper right")
     ax[1].get_legend().remove()
@@ -506,15 +507,14 @@ if plot:
         x_=[E, E, E, E],
         y_=[u5/integrate.simps(u5, E), u8/integrate.simps(u8, E),
             p9/integrate.simps(p9, E), p1/integrate.simps(p1, E)],
-        label_=[r"H " + U5, r"M " + U8, r"H " + Pu9, r"H " + Pu1],
-        styles=['k--', 'r--', 'b-.', 'g:'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
+        label_=[r"H " + U5, r"M " + U8, r"H " + Pu9, r"H " + Pu1], styles=['k--', 'r--', 'b-.', 'g:'], y_sci=True,
+        ylabel_=r'S$_{\textrm{{\small{iso}}}} \times \sigma_{\textrm{{\small{IBD}}}}$ [cm$^2$/MeV/fission]'
     )
 
     plot_function(
-        x_=[E, E, E, E],
-        y_=[u5, u8, p9, p1],
-        label_=[r"H " + U5, r"M " + U8, r"H " + Pu9, r"H " + Pu1],
-        styles=['k--', 'r--', 'b-.', 'g:'], ylabel_=r'isotopic spectrum $\times \sigma_{\text{IBD}}$ [a.u.]'
+        x_=[E, E, E, E], y_=[u5, u8, p9, p1],
+        label_=[r"H " + U5, r"M " + U8, r"H " + Pu9, r"H " + Pu1], styles=['k--', 'r--', 'b-.', 'g:'], y_sci=True,
+        ylabel_=r'S$_{\textrm{{\small{iso}}}} \times \sigma_{\textrm{{\small{IBD}}}}$ [cm$^2$/MeV/fission]'
     )
 
 
