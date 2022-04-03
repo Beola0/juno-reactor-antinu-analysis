@@ -17,7 +17,7 @@ def _inverse(x):
     return np.sign(x) * np.abs(x)**(1./scale_)
 
 
-def plot_function(x_, y_, ylabel_, label_='', styles=None, xlabel_=r'$E_{\nu}$ [MeV]',
+def plot_function(x_, y_, ylabel_, label_='', styles=None, xlabel_=r'$E_{\nu}$ [MeV]', y_sci=False,
                   xlim=None, ylim=None, logx=False, fig_length=7, fig_height=4, base_major=2.0, base_minor=0.5,
                   constrained_layout_=False):
     if len(x_) != len(y_):
@@ -51,7 +51,10 @@ def plot_function(x_, y_, ylabel_, label_='', styles=None, xlabel_=r'$E_{\nu}$ [
         ax_.xaxis.set_major_locator(plticker.MultipleLocator(base=base_major))
         ax_.xaxis.set_minor_locator(plticker.MultipleLocator(base=base_minor))
     ax_.tick_params('both', direction='out', which='both')
-    ax_.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    if y_sci:
+        ax_.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    else:
+        ax_.ticklabel_format(axis="y", style="plain", scilimits=(0, 0))
     ax_.legend(labelspacing=0.2)
 
     return ax_

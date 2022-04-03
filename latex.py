@@ -14,6 +14,7 @@ pgf_with_latex = {
     "pgf.preamble": [
         r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts
         r"\usepackage[T1]{fontenc}",        # plots will be generated
+        r"\usepackage{amsmath,amsfonts,amssymb}"
         # r"\usepackage{mhchem}"
         ]                                   # using this preamble
 }

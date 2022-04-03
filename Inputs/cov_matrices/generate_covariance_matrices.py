@@ -15,6 +15,10 @@ sys.path.insert(0, cwd + '../../AntineutrinoSpectrum')
 # from numpy import linalg
 # import matplotlib.colors as colors
 
+
+# TODO:
+# - add partial correlation in one uncertainty from Mueller (also for EF)
+
 path = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/cov_matrices'
 path_to_input = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/spectra/'
 
@@ -30,8 +34,15 @@ huber_diagonal = {
     'norm': False
 }
 
+mueller_diagonal = {
+    'nuclear_db': True,
+    'forbidden_treatment': True,
+    'corrections': False,
+    'missing_info': True,
+}
 
-def get_covariance(df_, uncert_, diagonal_=False, absolute_=True, scale_=None, huber=True):
+
+def get_covariance(df_, uncert_, diagonal_=False, absolute_=True, scale_=None, huber=False):
     n_ = len(df_.index)
     appo_matrix = np.zeros((n_, n_))
 
@@ -82,11 +93,11 @@ def generate_from_huber(isotope_, uncertainty_="total", absolute_=True, scale_=N
         n = len(input_df.index)
         cov_matrix = np.zeros((n, n))
         for uncert_ in uncert[:-1]:
-            cov_matrix += get_covariance(input_df, uncert_, diagonal_=huber_diagonal[uncert_], absolute_=absolute_, scale_=scale_)
-    elif uncertainty_ == 'stat' or uncertainty_ == 'bias':
-        cov_matrix = get_covariance(input_df, uncertainty_, diagonal_=True, absolute_=absolute_, scale_=scale_)
-    elif uncertainty_ == 'z' or uncertainty_ == 'wm' or uncertainty_ == 'norm':
-        cov_matrix = get_covariance(input_df, uncertainty_, absolute_=absolute_, scale_=scale_)
+            cov_matrix += get_covariance(input_df, uncert_, diagonal_=huber_diagonal[uncert_], absolute_=absolute_,
+                                         scale_=scale_, huber=True)
+    elif uncertainty_ in uncert:
+        cov_matrix = get_covariance(input_df, uncertainty_, diagonal_=huber_diagonal[uncertainty_], absolute_=absolute_,
+                                    scale_=scale_, huber=True)
     else:
         raise ValueError("Invalid uncertainty_ value. Expected one of: %s" % uncert)
 
@@ -108,10 +119,11 @@ def generate_from_ef(isotope_, uncertainty_="total", absolute_=True, scale_=None
         n = len(input_df.index)
         cov_matrix = np.zeros((n, n))
         for uncert_ in uncert[:-1]:
-            cov_matrix += get_covariance(input_df, uncert_, diagonal_=True, absolute_=absolute_,
+            cov_matrix += get_covariance(input_df, uncert_, diagonal_=mueller_diagonal[uncert_], absolute_=absolute_,
                                          scale_=scale_, huber=False)
     elif uncertainty_ in uncert:
-        cov_matrix = get_covariance(input_df, uncertainty_, diagonal_=True, absolute_=absolute_, scale_=scale_, huber=False)
+        cov_matrix = get_covariance(input_df, uncertainty_, diagonal_=mueller_diagonal[uncertainty_],
+                                    absolute_=absolute_, scale_=scale_, huber=False)
     else:
         raise ValueError("Invalid uncertainty_ value. Expected one of: %s" % uncert)
 
@@ -133,10 +145,11 @@ def generate_from_mueller(isotope_, uncertainty_="total", absolute_=True, scale_
         n = len(input_df.index)
         cov_matrix = np.zeros((n, n))
         for uncert_ in uncert[:-1]:
-            cov_matrix += get_covariance(input_df, uncert_, diagonal_=True, absolute_=absolute_,
+            cov_matrix += get_covariance(input_df, uncert_, diagonal_=mueller_diagonal[uncert_], absolute_=absolute_,
                                          scale_=scale_, huber=False)
     elif uncertainty_ in uncert:
-        cov_matrix = get_covariance(input_df, uncertainty_, diagonal_=True, absolute_=absolute_, scale_=scale_, huber=False)
+        cov_matrix = get_covariance(input_df, uncertainty_, diagonal_=mueller_diagonal[uncertainty_],
+                                    absolute_=absolute_, scale_=scale_, huber=False)
     else:
         raise ValueError("Invalid uncertainty_ value. Expected one of: %s" % uncert)
 
@@ -145,8 +158,7 @@ def generate_from_mueller(isotope_, uncertainty_="total", absolute_=True, scale_
 
 def evaluate_cov_matrix_from_samples(samples_, central_values_):
     if type(central_values_) is not np.ndarray:
-        print("\nError: please be sure that the variable central_values_is a numpy array (numpy.ndarray)")
-        sys.exit()
+        raise TypeError(f"Expected central_values_ as numpy.ndarray, got {type(central_values_)} instead.")
 
     n_samples = samples_.shape[0]
     n_bins = len(central_values_)
@@ -178,4 +190,4 @@ def reshape_cov_matrix(new_bins_, old_bins_, central_values_, cov_matrix_, n_sam
 
     new_cov_ = evaluate_cov_matrix_from_samples(reshaped_samples_, new_central_values_)
 
-    return new_cov_, n_samples_
+    return new_cov_, n_samples_  # , pure_samples_
