@@ -21,7 +21,7 @@ from single reactors, v/HM/DYB model comparison
 
 ## Inputs
 
-The directory `Inputs` contains all inputs needed:
+The directory `data` contains all inputs needed:
 * input oscillation parameters
 * list of reactors 
 * DYB unfolded spectra
@@ -32,7 +32,7 @@ The directory `Inputs` contains all inputs needed:
 
 ## Antinuetrino Spectrum
 
-The directory `AntineutrinoSpectrum` contains the four classes used to obtain the reactor antineutrino spectrum:
+The directory `antinu_spectrum` contains the four classes used to obtain the reactor antineutrino spectrum:
 * `reactor.py`: isotopic spectra; reactor models: Vogel, Huber+Mueller, DYB; cross sections: Vogel+Beacom, 
 Strumia+Vissani;
 SNF and NonEq corrections; unoscillated spectrum
