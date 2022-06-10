@@ -1,23 +1,18 @@
-import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 import json
-# import pandas as pd
-cwd = os.getcwd()
-sys.path.insert(0, cwd + '/AntineutrinoSpectrum')
 import latex
-from plot import plot_function
-from reactor import UnoscillatedReactorSpectrum
+from antinu_spectrum.plot import plot_function
+from antinu_spectrum.reactor import UnoscillatedReactorSpectrum
 
 
 ### MAIN ###
 time_start = time.perf_counter_ns()
 
-f = open('Inputs/nominal_inputs.json')
-# f = open('Inputs/nominal_inputs.json')
-# f = open('Inputs/YB_inputs.json')
+f = open('data/nominal_inputs.json')
+# f = open('data/nominal_inputs.json')
+# f = open('data/YB_inputs.json')
 inputs_json = json.load(f)
 
 # E = np.arange(1.806, 10.01, 0.01)  # in MeV
@@ -80,21 +75,22 @@ pu241 = react.eval_241pu(E, which_input='HM_parametric')
 dyb_correction = react.get_dybfluxbump_ratio(E)
 hm_corrected = reactor_spectrum_hm * dyb_correction
 
-ylabel0 = r'isotopic spectrum [$\text{N}_{\nu}/\text{fission}/\si{\MeV}$]'
-ylabel1 = r'reactor spectrum [$\text{N}_{\nu}/\si{\s}/\si{\MeV}$]'
-ylabel2 = r'reactor flux [$\text{N}_{\nu}/\si{\s}/\si{\MeV}/\si{\centi\m\squared}$]'
-ylabel3 = r'$S_{\bar{\nu}}$ [N$_{\nu}$/\si{\MeV}/\si{s}]'
+ylabel0 = r'isotopic spectrum [$\textrm{N}_{\nu}$/fission/MeV]'
+ylabel1 = r'reactor spectrum [$\textrm{N}_{\nu}$/s/MeV]'
+ylabel2 = r'reactor flux [$\textrm{N}_{\nu}$/s/MeV/cm$^2$]'
+ylabel3 = r'$S_{\bar{\nu}}$ [N$_{\nu}$/MeV/s]'
 
 ax = plot_function(x_=[E, E, E, E, E],# E, E],
-              y_=[flux_hm, react.get_f235u() * u235, react.get_f239pu() * pu239, react.get_f238u() * u238,
-                  react.get_f241pu() * pu241], # xsec_sv*2.e8, reactor_spectrum_hm*2500.],
-              label_=[r'total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu', r'$\sigma_{\text{IBD}}$',
-                      r'$\bar{\nu}$ spectrum'],
-              styles=['m', 'b--', 'r-.', 'g:', 'y', 'c', 'k'],
-              ylabel_=r'$S^{\text{iso}}(E_{\nu})$ [N$_{\nu}$/\si{MeV}/fission]', xlim=None, ylim=None)
+                   y_=[flux_hm, react.get_f235u() * u235, react.get_f239pu() * pu239, react.get_f238u() * u238,
+                       react.get_f241pu() * pu241], # xsec_sv*2.e8, reactor_spectrum_hm*2500.],
+                   label_=[r'total', r'$^{235}$U', r'$^{239}$Pu', r'$^{238}$U', r'$^{241}$Pu',
+                           r'$\sigma_{\textrm{{\small{IBD}}}}$', r'$\bar{\nu}$ spectrum'],
+                   styles=['m', 'b--', 'r-.', 'g:', 'y', 'c', 'k'],
+                   ylabel_=r'$S^{\textrm{{\small{iso}}}}(E_{\nu})$ [N$_{\nu}$/MeV/fission]',
+                   xlim=None, ylim=None, y_sci=True)
 ax.get_legend().remove()
 ax1 = ax.twinx()
-ax1.set_ylabel(r'$\sigma_{\text{IBD}} [\si{\centi\meter\squared}]$', color='c')
+ax1.set_ylabel(r'$\sigma_{\textrm{{\small{IBD}}}}$ [cm$^2$]', color='c')
 ax1.set_ylim(-0.25e-42, 6.e-42)
 ax1.plot(E, xsec_sv, 'c-', linewidth=1)
 ax1.tick_params(axis='y', labelcolor='c')
@@ -103,19 +99,19 @@ ax1.plot(E, xsec_sv*flux_hm*30., 'k-', linewidth=1)
 
 plot_function(x_=[E, E, E], y_=[flux_v, flux_hm, flux_dyb],
               label_=[r'Vogel', r'HM', r'DYB'], styles=['g-', 'r--', 'k'],
-              ylabel_=ylabel0, xlim=None, ylim=None)
+              ylabel_=ylabel0, xlim=None, ylim=None, y_sci=True)
 
 plot_function(x_=[E, E, E], y_=[iso_spectrum_v, iso_spectrum_hm, iso_spectrum_dyb],
               label_=[r'Vogel', r'HM', r'DYB'], styles=['g-', 'r--', 'k'],
-              ylabel_=ylabel1, xlim=None, ylim=None)
+              ylabel_=ylabel1, xlim=None, ylim=None, y_sci=True)
 
 plot_function(x_=[E, E, E], y_=[reactor_flux_v, reactor_flux_hm, reactor_flux_dyb],
               label_=[r'Vogel', r'HM', r'DYB'], styles=['g-', 'r--', 'k'],
-              ylabel_=ylabel2, xlim=None, ylim=None)
+              ylabel_=ylabel2, xlim=None, ylim=None, y_sci=True)
 
 plot_function(x_=[E, E, E], y_=[reactor_spectrum_v, reactor_spectrum_hm, reactor_spectrum_dyb],
               label_=[r'Vogel', r'HM', r'DYB'], styles=['g-', 'r--', 'k'],
-              ylabel_=ylabel3, xlim=None, ylim=None)
+              ylabel_=ylabel3, xlim=None, ylim=None, y_sci=True)
 
 # plot_function(x_=[E, E, E, E], y_=[nominal, nominal_snf, nominal_noneq, nominal_snf_noneq],
 #               label_=[r'nominal', r'SNF', r'NonEq', r'SNF+NonEq'], styles=['k', 'b:', 'r-', 'g--'],
@@ -129,7 +125,7 @@ plot_function(x_=[E, E, E], y_=[reactor_spectrum_v, reactor_spectrum_hm, reactor
 
 plot_function(x_=[E, E, E], y_=[reactor_spectrum_hm, hm_corrected, reactor_spectrum_dyb],
               label_=[r'HM', r'HM - corrected', r'DYB'], styles=['g:', 'b--', 'k'],
-              ylabel_=ylabel3, xlim=None, ylim=None)
+              ylabel_=ylabel3, xlim=None, ylim=None, y_sci=True)
 
 
 elapsed_time = time.perf_counter_ns() - time_start

@@ -34,9 +34,9 @@ def plot_function(x_, y_, ylabel_, label_='', styles=None, xlabel_=r'$E_{\nu}$ [
                   '#bcbd22', '#17becf']
     for i_ in np.arange(len(x_)):
         if not logx:
-            ax_.plot(x_[i_], y_[i_], styles[i_], linewidth=1., label=label_[i_], markersize=4)
+            ax_.plot(x_[i_], y_[i_], styles[i_], linewidth=1.5, label=label_[i_], markersize=4)
         else:
-            ax_.semilogx(x_[i_], y_[i_], styles[i_], linewidth=1., label=label_[i_])
+            ax_.semilogx(x_[i_], y_[i_], styles[i_], linewidth=1.5, label=label_[i_])
 
     ax_.grid(alpha=0.65)
     ax_.set_xlabel(xlabel_)

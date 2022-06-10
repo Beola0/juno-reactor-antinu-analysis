@@ -1,21 +1,14 @@
-import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
-# import matplotlib.ticker as plticker
-# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import time
 import json
 import math
 import pandas as pd
-# from scipy.interpolate import interp1d, Akima1DInterpolator, UnivariateSpline
 from scipy import integrate, stats, interpolate
-cwd = os.getcwd()
-sys.path.insert(0, cwd + '/AntineutrinoSpectrum')
 import latex
-from plot import plot_function, plot_function_residual
-from reactor import UnoscillatedReactorSpectrum
-from oscillation import OscillationProbability
+from antinu_spectrum.plot import plot_function, plot_function_residual
+from antinu_spectrum.reactor import UnoscillatedReactorSpectrum
+from antinu_spectrum.oscillation import OscillationProbability
 
 HEADER = '\033[95m'
 BLUE = '\033[94m'
@@ -33,8 +26,8 @@ U8 = r'$^{238}$U'
 Pu9 = r'$^{239}$Pu'
 Pu1 = r'$^{241}$Pu'
 
-# f = open('Inputs/nufit_inputs.json')
-f = open('Inputs/nominal_inputs.json')
+# f = open('data/nufit_inputs.json')
+f = open('data/nominal_inputs.json')
 inputs_json = json.load(f)
 
 std_hm = {
@@ -52,7 +45,7 @@ input_dyb = {
     '241Pu': 'Huber'
 }
 
-path_ff = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/fission_fractions/'
+path_ff = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/data/fission_fractions/'
 
 e_235 = inputs_json["mean_fission_energy"]["235U"]
 e_239 = inputs_json["mean_fission_energy"]["239Pu"]
@@ -251,8 +244,8 @@ print("beginning: {:.5e}; end: {:.5e}; difference: {:.2f}%".format(xsf[0], xsf[-
 plot = False
 
 const = 6.241509e21
-w_th = 2.9  # GW - Taishan core
-L = 52.74e5  # TS core - baseline in cm
+w_th = 4.6  # GW - Taishan core
+L = 52.77e5  # TS core - baseline in cm
 Np = react.eval_n_protons()
 eff = 0.822
 
@@ -389,7 +382,7 @@ ax.legend(loc='upper right')
 energy = react.get_total_dyb().index.to_numpy()
 N_samples = 1000
 
-total_cov = np.load('Inputs/total_covariance_125x125.npy')
+total_cov = np.load('data/total_covariance_125x125.npy')
 xs_25 = react.eval_xs(energy, which_xs='SV_approx', bool_protons=False)
 
 all_samples = np.zeros((N_239, N_samples, len(energy)))

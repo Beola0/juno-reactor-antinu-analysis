@@ -1,21 +1,17 @@
-import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as plticker
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import time
-import json
+# import matplotlib.ticker as plticker
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+# import time
+# import json
 # import math
 # import pandas as pd
-from scipy.interpolate import interp1d, Akima1DInterpolator, UnivariateSpline
-from scipy import integrate
-cwd = os.getcwd()
-sys.path.insert(0, cwd + '/AntineutrinoSpectrum')
+# from scipy.interpolate import interp1d, Akima1DInterpolator, UnivariateSpline
+# from scipy import integrate
 import latex
-from plot import plot_function, plot_function_residual
-from reactor import UnoscillatedReactorSpectrum
-from oscillation import OscillationProbability
+from antinu_spectrum.plot import plot_function, plot_function_residual
+# from antinu_spectrum.reactor import UnoscillatedReactorSpectrum
+# from antinu_spectrum.oscillation import OscillationProbability
 
 delta = 1.293  # MeV
 m_p = 938.272  # MeV
@@ -62,15 +58,13 @@ for i_ in np.arange(len(E_e)):
 
 plot_function(
     x_=[E, E], y_=[E-get_e1(E), E-get_e2(E)], label_=[r'E-E1', r'E-E2'], styles=['r', 'b'],
-    ylabel_=r'E$_{\nu}$-E$_e$ [\si{\MeV}]', ylim=[1.2, 1.5]
+    ylabel_=r'E$_{\nu}$-E$_e$ [MeV]', ylim=[1.2, 1.5]
 )
 
 plot_function(
     x_=[E_e-E_e_mean], y_=[appo/eval_xs_strumiavissani_approx(E_2, E_2-delta)], label_=[r'2 MeV'],
     ylabel_=r'sigma', xlabel_=r'$\Delta$ Ee', xlim=[-0.1, 0.1]
 )
-
-
 
 plt.ion()
 plt.show()

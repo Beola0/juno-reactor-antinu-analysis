@@ -1,21 +1,13 @@
 import numpy as np
 from scipy import interpolate, stats
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-# from matplotlib.colors import Normalize
 import time
 import json
-import os
-import sys
-cwd = os.getcwd()
-sys.path.insert(0, cwd + '/AntineutrinoSpectrum')
-sys.path.insert(0, cwd + '/Inputs/cov_matrices')
 import latex
-from plot import plot_function, plot_function_residual, plot_matrix, plot_two_matrices, plot_six_matrices
-from reactor import UnoscillatedReactorSpectrum
+from antinu_spectrum.plot import plot_function, plot_function_residual, plot_matrix, plot_two_matrices, plot_six_matrices
+from antinu_spectrum.reactor import UnoscillatedReactorSpectrum
 from numpy import linalg
-import matplotlib.colors as colors
-import generate_covariance_matrices
+import antinu_spectrum.generate_covariance_matrices as cov_mat
 import pandas as pd
 
 
@@ -28,12 +20,12 @@ U8 = r'$^{238}$U'
 Pu9 = r'$^{239}$Pu'
 Pu1 = r'$^{241}$Pu'
 
-path = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/cov_matrices'
+path = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/data/cov_matrices'
 
 label_covariance = r'Covariance [(N$_{\nu}$/MeV/fission)$^2$]'
 label_covariance_xs = r'Covariance [(cm$^2$/MeV/fission)$^2$]'
 
-f = open('Inputs/nominal_inputs.json')
+f = open('data/nominal_inputs.json')
 inputs_json = json.load(f)
 react = UnoscillatedReactorSpectrum(inputs_json)
 
@@ -49,29 +41,29 @@ plot = False
 xs = react.eval_xs(huber_241pu.index, bool_protons=False, which_xs='SV_approx')
 N_h = len(huber_241pu.index)
 
-stat_cov = generate_covariance_matrices.generate_from_huber("241", uncertainty_='stat')
-stat_cov_xs = generate_covariance_matrices.generate_from_huber("241", uncertainty_='stat', scale_=xs)
-stat_cov_rel = generate_covariance_matrices.generate_from_huber("241", uncertainty_='stat', absolute_=False)
+stat_cov = cov_mat.generate_from_huber("241", uncertainty_='stat')
+stat_cov_xs = cov_mat.generate_from_huber("241", uncertainty_='stat', scale_=xs)
+stat_cov_rel = cov_mat.generate_from_huber("241", uncertainty_='stat', absolute_=False)
 
-bias_cov = generate_covariance_matrices.generate_from_huber("241", uncertainty_='bias')
-bias_cov_xs = generate_covariance_matrices.generate_from_huber("241", uncertainty_='bias', scale_=xs)
-bias_cov_rel = generate_covariance_matrices.generate_from_huber("241", uncertainty_='bias', absolute_=False)
+bias_cov = cov_mat.generate_from_huber("241", uncertainty_='bias')
+bias_cov_xs = cov_mat.generate_from_huber("241", uncertainty_='bias', scale_=xs)
+bias_cov_rel = cov_mat.generate_from_huber("241", uncertainty_='bias', absolute_=False)
 
-z_cov = generate_covariance_matrices.generate_from_huber("241", uncertainty_='z')
-z_cov_xs = generate_covariance_matrices.generate_from_huber("241", uncertainty_='z', scale_=xs)
-z_cov_rel = generate_covariance_matrices.generate_from_huber("241", uncertainty_='z', absolute_=False)
+z_cov = cov_mat.generate_from_huber("241", uncertainty_='z')
+z_cov_xs = cov_mat.generate_from_huber("241", uncertainty_='z', scale_=xs)
+z_cov_rel = cov_mat.generate_from_huber("241", uncertainty_='z', absolute_=False)
 
-wm_cov = generate_covariance_matrices.generate_from_huber("241", uncertainty_='wm')
-wm_cov_xs = generate_covariance_matrices.generate_from_huber("241", uncertainty_='wm', scale_=xs)
-wm_cov_rel = generate_covariance_matrices.generate_from_huber("241", uncertainty_='wm', absolute_=False)
+wm_cov = cov_mat.generate_from_huber("241", uncertainty_='wm')
+wm_cov_xs = cov_mat.generate_from_huber("241", uncertainty_='wm', scale_=xs)
+wm_cov_rel = cov_mat.generate_from_huber("241", uncertainty_='wm', absolute_=False)
 
-norm_cov = generate_covariance_matrices.generate_from_huber("241", uncertainty_='norm')
-norm_cov_xs = generate_covariance_matrices.generate_from_huber("241", uncertainty_='norm', scale_=xs)
-norm_cov_rel = generate_covariance_matrices.generate_from_huber("241", uncertainty_='norm', absolute_=False)
+norm_cov = cov_mat.generate_from_huber("241", uncertainty_='norm')
+norm_cov_xs = cov_mat.generate_from_huber("241", uncertainty_='norm', scale_=xs)
+norm_cov_rel = cov_mat.generate_from_huber("241", uncertainty_='norm', absolute_=False)
 
-total_241pu = generate_covariance_matrices.generate_from_huber("241", uncertainty_='total')
-total_241pu_xs = generate_covariance_matrices.generate_from_huber("241", uncertainty_='total', scale_=xs)
-total_241pu_rel = generate_covariance_matrices.generate_from_huber("241", uncertainty_='total', absolute_=False)
+total_241pu = cov_mat.generate_from_huber("241", uncertainty_='total')
+total_241pu_xs = cov_mat.generate_from_huber("241", uncertainty_='total', scale_=xs)
+total_241pu_rel = cov_mat.generate_from_huber("241", uncertainty_='total', absolute_=False)
 
 if plot:
     matrices = [stat_cov, bias_cov, z_cov, wm_cov, norm_cov, total_241pu]
@@ -127,21 +119,21 @@ plot = False
 xs = react.eval_xs(mueller_238u.index, bool_protons=False, which_xs='SV_approx')
 
 N_m = len(mueller_238u.index)
-nucleardb_cov = generate_covariance_matrices.generate_from_ef("238", uncertainty_='nuclear_db', absolute_=True)
-nucleardb_cov_xs = generate_covariance_matrices.generate_from_ef("238", uncertainty_='nuclear_db', scale_=xs)
-nucleardb_cov_rel = generate_covariance_matrices.generate_from_ef("238", uncertainty_='nuclear_db', absolute_=False)
+nucleardb_cov = cov_mat.generate_from_ef("238", uncertainty_='nuclear_db', absolute_=True)
+nucleardb_cov_xs = cov_mat.generate_from_ef("238", uncertainty_='nuclear_db', scale_=xs)
+nucleardb_cov_rel = cov_mat.generate_from_ef("238", uncertainty_='nuclear_db', absolute_=False)
 
-forbid_cov = generate_covariance_matrices.generate_from_ef("238", uncertainty_='forbidden_treatment', absolute_=True)
-forbid_cov_xs = generate_covariance_matrices.generate_from_ef("238", uncertainty_='forbidden_treatment', scale_=xs)
-forbid_cov_rel = generate_covariance_matrices.generate_from_ef("238", uncertainty_='forbidden_treatment', absolute_=False)
+forbid_cov = cov_mat.generate_from_ef("238", uncertainty_='forbidden_treatment', absolute_=True)
+forbid_cov_xs = cov_mat.generate_from_ef("238", uncertainty_='forbidden_treatment', scale_=xs)
+forbid_cov_rel = cov_mat.generate_from_ef("238", uncertainty_='forbidden_treatment', absolute_=False)
 
-corr_cov = generate_covariance_matrices.generate_from_ef("238", uncertainty_='corrections', absolute_=True)
-corr_cov_xs = generate_covariance_matrices.generate_from_ef("238", uncertainty_='corrections', scale_=xs)
-corr_cov_rel = generate_covariance_matrices.generate_from_ef("238", uncertainty_='corrections', absolute_=False)
+corr_cov = cov_mat.generate_from_ef("238", uncertainty_='corrections', absolute_=True)
+corr_cov_xs = cov_mat.generate_from_ef("238", uncertainty_='corrections', scale_=xs)
+corr_cov_rel = cov_mat.generate_from_ef("238", uncertainty_='corrections', absolute_=False)
 
-missing_cov = generate_covariance_matrices.generate_from_ef("238", uncertainty_='missing_info', absolute_=True)
-missing_cov_xs = generate_covariance_matrices.generate_from_ef("238", uncertainty_='missing_info', scale_=xs)
-missing_cov_rel = generate_covariance_matrices.generate_from_ef("238", uncertainty_='missing_info', absolute_=False)
+missing_cov = cov_mat.generate_from_ef("238", uncertainty_='missing_info', absolute_=True)
+missing_cov_xs = cov_mat.generate_from_ef("238", uncertainty_='missing_info', scale_=xs)
+missing_cov_rel = cov_mat.generate_from_ef("238", uncertainty_='missing_info', absolute_=False)
 
 total_238u = nucleardb_cov + forbid_cov + corr_cov + missing_cov
 total_238u_xs = nucleardb_cov_xs + forbid_cov_xs + corr_cov_xs + missing_cov_xs
@@ -244,35 +236,35 @@ if plot:
 ########################################################################################################################
 # reshape of covariance matrix through toyMC vs interpolation
 ########################################################################################################################
-plot = False
+plot = True
 
-N_samples = 100
+N_samples = 10000
 new_bins = react.get_235u_dyb().index
 # reshaping matrix for isotopic spectrum without cross section --> can use exponential interpolation
-new_cov_238u, nn = generate_covariance_matrices.reshape_cov_matrix(new_bins, mueller_238u.index.to_numpy(),
+new_cov_238u, nn = cov_mat.reshape_cov_matrix(new_bins, mueller_238u.index.to_numpy(),
                                                                    EF_238u, total_238u, n_samples_=N_samples)
-new_cov_241pu, nn2 = generate_covariance_matrices.reshape_cov_matrix(new_bins, huber_241pu.index.to_numpy(),
+new_cov_241pu, nn2 = cov_mat.reshape_cov_matrix(new_bins, huber_241pu.index.to_numpy(),
                                                                      huber_241pu["spectrum"].to_numpy(), total_241pu,
                                                                      n_samples_=N_samples)
 
 new_bins_50 = np.arange(2, 8.25, 0.125)
-new_cov_238u_50, nn_50 = generate_covariance_matrices.reshape_cov_matrix(new_bins_50, mueller_238u.index.to_numpy(),
+new_cov_238u_50, nn_50 = cov_mat.reshape_cov_matrix(new_bins_50, mueller_238u.index.to_numpy(),
                                                                          EF_238u, total_238u, n_samples_=N_samples)
-new_cov_241pu_50, nn2_50 = generate_covariance_matrices.reshape_cov_matrix(new_bins_50, huber_241pu.index.to_numpy(),
+new_cov_241pu_50, nn2_50 = cov_mat.reshape_cov_matrix(new_bins_50, huber_241pu.index.to_numpy(),
                                                                            huber_241pu["spectrum"].to_numpy(),
                                                                            total_241pu, n_samples_=N_samples)
 
 new_bins_100 = np.arange(2, 8.25, 0.0625)
-new_cov_238u_100, nn_100 = generate_covariance_matrices.reshape_cov_matrix(new_bins_100, mueller_238u.index.to_numpy(),
+new_cov_238u_100, nn_100 = cov_mat.reshape_cov_matrix(new_bins_100, mueller_238u.index.to_numpy(),
                                                                            EF_238u, total_238u, n_samples_=N_samples)
-new_cov_241pu_100, nn2_100 = generate_covariance_matrices.reshape_cov_matrix(new_bins_100, huber_241pu.index.to_numpy(),
+new_cov_241pu_100, nn2_100 = cov_mat.reshape_cov_matrix(new_bins_100, huber_241pu.index.to_numpy(),
                                                                              huber_241pu["spectrum"].to_numpy(),
                                                                              total_241pu, n_samples_=N_samples)
 
 new_bins_200 = np.arange(2, 8.25, 0.03125)
-new_cov_238u_200, nn_200 = generate_covariance_matrices.reshape_cov_matrix(new_bins_200, mueller_238u.index.to_numpy(),
+new_cov_238u_200, nn_200 = cov_mat.reshape_cov_matrix(new_bins_200, mueller_238u.index.to_numpy(),
                                                                            EF_238u, total_238u, n_samples_=N_samples)
-new_cov_241pu_200, nn2_200 = generate_covariance_matrices.reshape_cov_matrix(new_bins_200, huber_241pu.index.to_numpy(),
+new_cov_241pu_200, nn2_200 = cov_mat.reshape_cov_matrix(new_bins_200, huber_241pu.index.to_numpy(),
                                                                              huber_241pu["spectrum"].to_numpy(),
                                                                              total_241pu, n_samples_=N_samples)
 
@@ -422,9 +414,9 @@ plot = False
 
 N_samples = 1000
 energy = react.get_235u_dyb().index
-new_238u, nn = generate_covariance_matrices.reshape_cov_matrix(energy, mueller_238u.index.to_numpy(),
+new_238u, nn = cov_mat.reshape_cov_matrix(energy, mueller_238u.index.to_numpy(),
                                                                    EF_238u, total_238u, n_samples_=N_samples)
-new_241pu, nn2 = generate_covariance_matrices.reshape_cov_matrix(energy, huber_241pu.index.to_numpy(),
+new_241pu, nn2 = cov_mat.reshape_cov_matrix(energy, huber_241pu.index.to_numpy(),
                                                                      huber_241pu["spectrum"].to_numpy(), total_241pu,
                                                                      n_samples_=N_samples)
 
@@ -472,7 +464,7 @@ spectrum = huber_241pu['spectrum']*xs
 
 samples = stats.multivariate_normal.rvs(mean=spectrum, cov=total_241pu_xs, size=N_samples)
 
-V = generate_covariance_matrices.evaluate_cov_matrix_from_samples(samples, spectrum.to_numpy())
+V = cov_mat.evaluate_cov_matrix_from_samples(samples, spectrum.to_numpy())
 
 if plot:
     plot_matrix(
@@ -581,7 +573,7 @@ juno_samples = np.zeros((N_smp, M))
 for i_ in np.arange(N_smp):
     juno_samples[i_] = np.dot(R, input_samples[i_])
 
-cov_toyMC = generate_covariance_matrices.evaluate_cov_matrix_from_samples(juno_samples, juno_matrix)
+cov_toyMC = cov_mat.evaluate_cov_matrix_from_samples(juno_samples, juno_matrix)
 
 if plot:
     plot_matrix(
@@ -623,7 +615,7 @@ if plot:
 plot = False
 
 col_names = ['Burnup', '235U-238U', '235U-239Pu', '235U-241Pu', '238U-239Pu', '238U-241Pu', '239Pu-241Pu']
-path = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/fission_fractions/'
+path = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/data/fission_fractions/'
 ff_cov_raw = pd.read_csv(path+'fission_fraction_covariance_Ma2017.csv', sep=',',
                                 skiprows=1, header=None, index_col=0, names=col_names)
 

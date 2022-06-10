@@ -5,7 +5,6 @@ from scipy import integrate
 
 # TODO
 # - add non linearity
-# - initialize with json file? --> DONE
 # - remove plotting parts
 # - add nuisance parameters for a, b, and c
 

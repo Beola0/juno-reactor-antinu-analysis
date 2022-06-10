@@ -10,8 +10,8 @@ from scipy.interpolate import interp1d
 # - add methods to change fission fractions --> time dependence?
 # - add SNF and NonEq contributions --> WIP
 # - add nuisances: for SNF and NonEq
-# - check interpolation and extrapolation methods for DYB-based reactor model - WIP
-# - correct NonEq for DYB model --> DONE --> needs further investigation
+# - check interpolation and extrapolation methods for DYB-based reactor model - DONE
+# - correct NonEq for DYB model --> needs further investigation
 # - include all possible scenarios for reactor model: EF tabulated data, HM tabulated data,
 #   SNF applied at the end, NonEq correction applied only to some isotopes, time dependence, ...
 

@@ -1,26 +1,12 @@
 import numpy as np
 from scipy import interpolate, stats
-# import matplotlib.pyplot as plt
-# import matplotlib.cm as cm
-# import time
-# import json
 import pandas as pd
-import os
-import sys
-cwd = os.getcwd()
-sys.path.insert(0, cwd + '../../AntineutrinoSpectrum')
-# import latex
-# from plot import plot_function, plot_function_residual, plot_matrix
-# from reactor import UnoscillatedReactorSpectrum
-# from numpy import linalg
-# import matplotlib.colors as colors
 
 
 # TODO:
 # - add partial correlation in one uncertainty from Mueller (also for EF)
 
-path = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/cov_matrices'
-path_to_input = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/Inputs/spectra/'
+path_to_input = '/Users/beatricejelmini/Desktop/JUNO/JUNO_codes/JUNO_ReactorNeutrinosAnalysis/data/spectra/'
 
 names_huber = ["energy", "spectrum", "neg_stat", "pos_stat", "neg_bias", "pos_bias", "neg_z", "pos_z", "neg_wm",
                "pos_wm", "neg_norm", "pos_norm", "neg_tot", "pos_tot"]
@@ -172,6 +158,13 @@ def evaluate_cov_matrix_from_samples(samples_, central_values_):
     matrix = matrix / n_samples
 
     return matrix
+
+
+# def samples_from_covariance_matrix():
+#
+#
+#
+#     return
 
 
 def reshape_cov_matrix(new_bins_, old_bins_, central_values_, cov_matrix_, n_samples_=50):

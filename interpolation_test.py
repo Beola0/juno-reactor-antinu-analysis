@@ -1,21 +1,15 @@
-import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import time
 import json
-# import math
-# import pandas as pd
 from scipy.interpolate import interp1d, Akima1DInterpolator, UnivariateSpline
 from scipy import integrate
-cwd = os.getcwd()
-sys.path.insert(0, cwd + '/AntineutrinoSpectrum')
 import latex
-from plot import plot_function, plot_function_residual
-from reactor import UnoscillatedReactorSpectrum
-from oscillation import OscillationProbability
+from antinu_spectrum.plot import plot_function, plot_function_residual
+from antinu_spectrum.reactor import UnoscillatedReactorSpectrum
+from antinu_spectrum.oscillation import OscillationProbability
 
 
 ########################################################################################################################
@@ -26,8 +20,8 @@ U8 = r'$^{238}$U'
 Pu9 = r'$^{239}$Pu'
 Pu1 = r'$^{241}$Pu'
 
-# f = open('Inputs/nufit_inputs.json')
-f = open('Inputs/nominal_inputs.json')
+# f = open('data/nufit_inputs.json')
+f = open('data/nominal_inputs.json')
 inputs_json = json.load(f)
 
 df_235 = inputs_json["fission_fractions"]["235U"] - 0.564
